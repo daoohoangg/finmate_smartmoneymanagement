@@ -14,6 +14,9 @@ import java.util.UUID;
 public class FileUploadServiceImpl implements FileUploadService {
 
     private final Cloudinary cloudinary;
+    /**
+     * Uploads file to Cloudinary and returns secure URL
+     */
     @Override
     public String uploadFile(MultipartFile file) throws IOException {
 
