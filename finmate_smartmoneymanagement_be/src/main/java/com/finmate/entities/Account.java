@@ -1,4 +1,4 @@
-package com.finmate.enities;
+package com.finmate.entities;
 
 import jakarta.persistence.*;
 import lombok.*;

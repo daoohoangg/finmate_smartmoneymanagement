@@ -2,7 +2,7 @@ package com.finmate.service.impl;
 
 import com.finmate.dto.request.AccountRequest;
 import com.finmate.dto.response.AccountResponse;
-import com.finmate.enities.Account;
+import com.finmate.entities.Account;
 import com.finmate.repository.AccountRepository;
 import com.finmate.service.AccountService;
 import lombok.RequiredArgsConstructor;
