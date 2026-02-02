@@ -12,6 +12,9 @@ public class FileUploadController {
 
     private final FileUploadService fileUploadService;
 
+    /**
+     * Uploads file; returns URL or error response
+     */
     @PostMapping("/upload")
     public ResponseEntity<?> uploadImage(@RequestParam("file") MultipartFile file) {
         try {
