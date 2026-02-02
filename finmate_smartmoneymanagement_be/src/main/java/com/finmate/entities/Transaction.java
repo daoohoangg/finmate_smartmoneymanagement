@@ -1,5 +1,6 @@
 package com.finmate.entities;
 
+import com.finmate.enums.TransactionType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -27,8 +28,12 @@ public class Transaction {
     private Wallet wallet;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id", nullable = false)
+    @JoinColumn(name = "category_id")
     private Category category;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private TransactionType type;
 
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal amount;
@@ -41,4 +46,19 @@ public class Transaction {
 
     @Column(name = "image_url")
     private String imageUrl;
+
+    // For TRANSFER: destination wallet
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "to_wallet_id")
+    private Wallet toWallet;
+
+    // For SAVINGS_COMMIT: link to savings goal
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "savings_goal_id")
+    private SavingsGoal savingsGoal;
+
+    // For INVESTMENT_EXECUTION: link to investment plan
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "investment_plan_id")
+    private InvestmentPlan investmentPlan;
 }
