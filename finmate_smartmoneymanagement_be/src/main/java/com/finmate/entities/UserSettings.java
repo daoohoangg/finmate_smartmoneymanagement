@@ -1,0 +1,55 @@
+package com.finmate.entities;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+@Entity
+@Table(name = "user_settings")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
+@Setter
+public class UserSettings {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false, unique = true)
+    private User user;
+
+    @Column(name = "dark_mode", nullable = false)
+    private Boolean darkMode;
+
+    @Column(nullable = false, length = 10)
+    private String language;
+
+    @Column(name = "default_currency", nullable = false, length = 10)
+    private String defaultCurrency;
+
+    @Column(name = "notification_enabled", nullable = false)
+    private Boolean notificationEnabled;
+
+    @Column(name = "budget_alert_threshold", nullable = false)
+    private Integer budgetAlertThreshold;
+
+    @PrePersist
+    protected void onCreate() {
+        if (darkMode == null) {
+            darkMode = false;
+        }
+        if (language == null) {
+            language = "VI";
+        }
+        if (defaultCurrency == null) {
+            defaultCurrency = "VND";
+        }
+        if (notificationEnabled == null) {
+            notificationEnabled = true;
+        }
+        if (budgetAlertThreshold == null) {
+            budgetAlertThreshold = 80;
+        }
+    }
+}
