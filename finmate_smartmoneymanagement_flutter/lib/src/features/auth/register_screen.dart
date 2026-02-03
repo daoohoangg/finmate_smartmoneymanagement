@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/storage/session_storage.dart';
 import '../../shared/widgets/app_text_field.dart';
 import '../../shared/widgets/primary_button.dart';
+import '../onboarding/onboarding_flow_screen.dart';
+import 'services/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -16,6 +19,70 @@ class RegisterScreen extends StatefulWidget {
 class _RegisterScreenState extends State<RegisterScreen> {
   bool _agreeToTerms = true;
   bool _obscurePassword = true;
+  bool _isLoading = false;
+
+  final _fullNameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  final _authService = AuthService();
+
+  @override
+  void dispose() {
+    _fullNameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleRegister() async {
+    final fullName = _fullNameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    final confirmPassword = _confirmPasswordController.text;
+
+    if (fullName.isEmpty || email.isEmpty || password.isEmpty) {
+      _showSnack('Please fill in all required fields');
+      return;
+    }
+    if (password != confirmPassword) {
+      _showSnack('Passwords do not match');
+      return;
+    }
+    if (!_agreeToTerms) {
+      _showSnack('You must agree to the terms');
+      return;
+    }
+    setState(() => _isLoading = true);
+    try {
+      final response = await _authService.register(
+        email: email,
+        password: password,
+        fullName: fullName,
+      );
+      await SessionStorage.instance.saveAuth(
+        token: response.token,
+        userId: response.userId,
+        email: response.email,
+        fullName: response.fullName,
+      );
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, OnboardingFlowScreen.routeName);
+    } catch (e) {
+      _showSnack(e.toString());
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,23 +119,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ?.copyWith(color: AppColors.textSecondary),
                   ),
                   const SizedBox(height: 20),
-                  const AppTextField(
+                  AppTextField(
                     label: 'Full Name',
                     hint: 'Alex Johnson',
                     suffix: Icon(Icons.check_circle, color: AppColors.success),
+                    controller: _fullNameController,
                   ),
                   const SizedBox(height: 16),
-                  const AppTextField(
+                  AppTextField(
                     label: 'Email',
                     hint: 'alex.j@example.com',
                     keyboardType: TextInputType.emailAddress,
                     suffix: Icon(Icons.check_circle, color: AppColors.success),
+                    controller: _emailController,
                   ),
                   const SizedBox(height: 16),
                   AppTextField(
                     label: 'Password',
                     hint: 'Password',
                     obscureText: _obscurePassword,
+                    controller: _passwordController,
                     suffix: IconButton(
                       icon: Icon(
                         _obscurePassword
@@ -89,6 +159,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     hint: 'Confirm password',
                     obscureText: true,
                     suffix: const Icon(Icons.check_circle, color: AppColors.success),
+                    controller: _confirmPasswordController,
                   ),
                   const SizedBox(height: 12),
                   Row(
@@ -140,7 +211,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   PrimaryButton(
                     label: 'Register',
                     color: AppColors.primaryRed,
-                    onPressed: () {},
+                    isLoading: _isLoading,
+                    onPressed: _isLoading ? null : _handleRegister,
                   ),
                   const SizedBox(height: 20),
                   Row(

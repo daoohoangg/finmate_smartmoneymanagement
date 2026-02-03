@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../../core/constants/app_colors.dart';
 
 class AppTextField extends StatelessWidget {
@@ -10,6 +9,7 @@ class AppTextField extends StatelessWidget {
     this.obscureText = false,
     this.suffix,
     this.keyboardType,
+    this.controller,
   });
 
   final String label;
@@ -17,6 +17,7 @@ class AppTextField extends StatelessWidget {
   final bool obscureText;
   final Widget? suffix;
   final TextInputType? keyboardType;
+  final TextEditingController? controller;
 
   @override
   Widget build(BuildContext context) {
@@ -35,6 +36,7 @@ class AppTextField extends StatelessWidget {
         TextField(
           obscureText: obscureText,
           keyboardType: keyboardType,
+          controller: controller,
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: Theme.of(context).textTheme.bodySmall?.copyWith(

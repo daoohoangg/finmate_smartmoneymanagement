@@ -74,7 +74,7 @@ public class UserSettingsServiceImpl implements UserSettingsService {
         UserSettings settings = new UserSettings();
         settings.setUser(user);
         settings.setDarkMode(false);
-        settings.setLanguage("VI");
+        settings.setLanguage("EN");
         settings.setDefaultCurrency("VND");
         settings.setNotificationEnabled(true);
         settings.setBudgetAlertThreshold(80);
