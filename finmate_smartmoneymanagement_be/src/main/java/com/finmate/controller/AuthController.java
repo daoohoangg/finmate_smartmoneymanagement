@@ -1,5 +1,6 @@
 package com.finmate.controller;
 
+import com.finmate.dto.request.GoogleLoginRequest;
 import com.finmate.dto.request.LoginRequest;
 import com.finmate.dto.request.RegisterRequest;
 import com.finmate.dto.response.AuthResponse;
@@ -40,6 +41,17 @@ public class AuthController {
     })
     public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
         AuthResponse response = authService.login(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/google")
+    @Operation(summary = "Google Sign-In", description = "Authenticates user with Google ID token")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Login successful"),
+            @ApiResponse(responseCode = "400", description = "Invalid Google token or configuration")
+    })
+    public ResponseEntity<AuthResponse> loginWithGoogle(@RequestBody GoogleLoginRequest request) {
+        AuthResponse response = authService.loginWithGoogle(request);
         return ResponseEntity.ok(response);
     }
 }

@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -33,6 +34,19 @@ public class Wallet {
 
     private String icon;
 
+    @Column(name = "is_deleted", nullable = false)
+    private Boolean isDeleted;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
     @OneToMany(mappedBy = "wallet", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Transaction> transactions;
+
+    @PrePersist
+    protected void onCreate() {
+        if (isDeleted == null) {
+            isDeleted = false;
+        }
+    }
 }

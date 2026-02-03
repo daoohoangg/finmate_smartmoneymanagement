@@ -20,6 +20,7 @@
    - [Savings Goals API](#6-savings-goals-api-zbb-savings-fund)
    - [User Settings API](#7-user-settings-api)
    - [Dashboard API](#8-dashboard-api-zbb-analytics)
+   - [Additional APIs](#9-additional-apis)
 5. [Business Logic](#business-logic)
 6. [Error Handling](#error-handling)
 7. [Common Use Cases](#common-use-cases)
@@ -67,7 +68,7 @@ User
 ## Authentication
 
 ### Current Implementation
-All endpoints (except `/api/auth/*`) require this header:
+All endpoints (except `/api/auth/*`) require a valid Bearer token. For backward compatibility, some endpoints still accept:
 ```http
 User-Id: <UUID>
 ```
@@ -78,7 +79,7 @@ GET /api/wallets
 User-Id: 123e4567-e89b-12d3-a456-426614174000
 ```
 
-> **Note**: JWT authentication with Bearer tokens will be implemented in future versions.
+> **Note**: JWT tokens are issued from `/api/auth/register`, `/api/auth/login`, and `/api/auth/google`.
 
 ### Security Features
 - ✅ Password hashing with BCrypt (strength 10)
@@ -117,7 +118,7 @@ Creates a new user account with email and password.
   "userId": "123e4567-e89b-12d3-a456-426614174000",
   "email": "user@example.com",
   "fullName": "Nguyen Van A",
-  "token": "mock-jwt-token"
+  "token": "jwt-token"
 }
 ```
 
@@ -149,12 +150,37 @@ Authenticates user with email and password.
   "userId": "123e4567-e89b-12d3-a456-426614174000",
   "email": "user@example.com",
   "fullName": "Nguyen Van A",
-  "token": "mock-jwt-token"
+  "token": "jwt-token"
 }
 ```
 
 **Errors**:
 - `401 Unauthorized`: Invalid email or password
+
+---
+
+### 1.3. Google Sign-In (Optional)
+
+Authenticates user with Google ID token.
+
+**Endpoint**: `POST /api/auth/google`
+
+**Request Body**:
+```json
+{
+  "idToken": "google-id-token"
+}
+```
+
+**Response** `200 OK`:
+```json
+{
+  "userId": "123e4567-e89b-12d3-a456-426614174000",
+  "email": "user@example.com",
+  "fullName": "Nguyen Van A",
+  "token": "jwt-token"
+}
+```
 
 ---
 
@@ -937,6 +963,8 @@ User-Id: <UUID>
 - `defaultCurrency`: `VND` or `USD`
 - `notificationEnabled`: Push notifications on/off
 - `budgetAlertThreshold`: Percentage (0-100) to trigger budget warning (e.g., 80 = alert when 80% spent)
+- `roundingScale`: Number of decimal places for reports/analytics
+- `roundingMode`: Rounding mode (e.g., `HALF_UP`)
 
 ---
 
@@ -957,7 +985,9 @@ Content-Type: application/json
   "language": "EN",
   "defaultCurrency": "USD",
   "notificationEnabled": true,
-  "budgetAlertThreshold": 90
+  "budgetAlertThreshold": 90,
+  "roundingScale": 2,
+  "roundingMode": "HALF_UP"
 }
 ```
 
@@ -987,8 +1017,13 @@ User-Id: <UUID>
   "cashflowThisMonth": 1500000.00,
   "totalAssigned": 10000000.00,
   "totalAvailable": 6500000.00,
+  "toBeAssigned": 5000000.00,
   "totalSavings": 2000000.00,
-  "totalInvested": 5000000.00
+  "totalInvested": 5000000.00,
+  "totalEarmarked": 7000000.00,
+  "ageYourMoneyDays": 18,
+  "topExpenseCategoryName": "Food & Drinks",
+  "topExpenseCategoryAmount": 1200000.00
 }
 ```
 
@@ -1013,6 +1048,96 @@ Display comprehensive financial overview on app home screen with:
 - Savings progress bars
 
 ---
+
+## 9. Additional APIs
+
+### 9.0. Profile API
+
+**Endpoints**:
+- `GET /api/profile`
+- `PUT /api/profile`
+- `PUT /api/profile/password`
+- `POST /api/profile/avatar`
+- `GET /api/profile/avatar`
+- `DELETE /api/profile/avatar`
+
+---
+
+### 9.0.1 Analytics API
+
+**Endpoints**:
+- `GET /api/analytics/spending-pie`
+- `GET /api/analytics/cashflow-trend`
+- `GET /api/analytics/calendar`
+- `GET /api/analytics/behavior`
+
+---
+
+### 9.0.2 Sync API
+
+**Endpoints**:
+- `GET /api/sync`
+
+---
+
+### 9.1. Category Rules API
+
+Rule-based auto-categorization by merchant/keyword/content.
+
+**Endpoints**:
+- `POST /api/category-rules`
+- `GET /api/category-rules`
+- `GET /api/category-rules/{id}`
+- `PUT /api/category-rules/{id}`
+- `DELETE /api/category-rules/{id}`
+
+---
+
+### 9.2. Investment Plans API
+
+Periodic investment planning sourced from Savings Fund.
+
+**Endpoints**:
+- `POST /api/investment-plans`
+- `GET /api/investment-plans`
+- `GET /api/investment-plans/{id}`
+- `PUT /api/investment-plans/{id}`
+- `DELETE /api/investment-plans/{id}`
+
+---
+
+### 9.3. Recurring Transactions API
+
+Create recurring templates and auto-generate transactions on schedule.
+
+**Endpoints**:
+- `POST /api/recurring-transactions`
+- `GET /api/recurring-transactions`
+- `GET /api/recurring-transactions/{id}`
+- `PUT /api/recurring-transactions/{id}`
+- `DELETE /api/recurring-transactions/{id}`
+
+---
+
+### 9.4. Transaction Attachments API (BLOB)
+
+Upload receipt images as BLOBs linked to transactions.
+
+**Endpoints**:
+- `POST /api/transactions/{id}/attachments`
+- `GET /api/transactions/{id}/attachments`
+- `GET /api/attachments/{id}`
+- `DELETE /api/attachments/{id}`
+
+---
+
+### 9.5. Transaction Import API (CSV/Excel)
+
+Upload CSV/Excel, map columns, preview, then import.
+
+**Endpoints**:
+- `POST /api/imports/transactions/preview`
+- `POST /api/imports/transactions`
 
 ## Business Logic
 

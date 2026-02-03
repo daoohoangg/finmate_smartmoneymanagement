@@ -40,6 +40,10 @@ public class InvestmentPlan {
     @Column(name = "next_execution_date")
     private LocalDate nextExecutionDate;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "source_savings_goal_id")
+    private SavingsGoal sourceSavingsGoal;
+
     @Column(name = "total_invested", nullable = false, precision = 19, scale = 2)
     private BigDecimal totalInvested;
 

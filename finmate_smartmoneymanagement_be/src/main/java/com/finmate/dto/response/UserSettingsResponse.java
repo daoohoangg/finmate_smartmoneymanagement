@@ -12,4 +12,6 @@ public class UserSettingsResponse {
     private String defaultCurrency;
     private Boolean notificationEnabled;
     private Integer budgetAlertThreshold;
+    private Integer roundingScale;
+    private String roundingMode;
 }

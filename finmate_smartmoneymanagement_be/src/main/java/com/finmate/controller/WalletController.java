@@ -2,7 +2,9 @@ package com.finmate.controller;
 
 import com.finmate.dto.request.WalletRequest;
 import com.finmate.dto.response.WalletResponse;
+import com.finmate.security.UserPrincipal;
 import com.finmate.service.WalletService;
+import com.finmate.util.UserIdResolver;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -11,6 +13,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -31,9 +34,11 @@ public class WalletController {
             @ApiResponse(responseCode = "400", description = "Invalid data")
     })
     public ResponseEntity<WalletResponse> createWallet(
-            @Parameter(description = "User ID", required = true) @RequestHeader("User-Id") UUID userId,
+            @Parameter(description = "User ID", required = false) @RequestHeader(value = "User-Id", required = false) UUID userId,
+            @AuthenticationPrincipal UserPrincipal principal,
             @RequestBody WalletRequest request) {
-        WalletResponse response = walletService.createWallet(userId, request);
+        UUID resolved = UserIdResolver.resolve(userId, principal);
+        WalletResponse response = walletService.createWallet(resolved, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -53,8 +58,10 @@ public class WalletController {
     @Operation(summary = "Get all wallets", description = "Retrieves all wallets for the user with current balances")
     @ApiResponse(responseCode = "200", description = "Success")
     public ResponseEntity<List<WalletResponse>> getAllWallets(
-            @Parameter(description = "User ID", required = true) @RequestHeader("User-Id") UUID userId) {
-        List<WalletResponse> responses = walletService.getAllWalletsByUser(userId);
+            @Parameter(description = "User ID", required = false) @RequestHeader(value = "User-Id", required = false) UUID userId,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        UUID resolved = UserIdResolver.resolve(userId, principal);
+        List<WalletResponse> responses = walletService.getAllWalletsByUser(resolved);
         return ResponseEntity.ok(responses);
     }
 

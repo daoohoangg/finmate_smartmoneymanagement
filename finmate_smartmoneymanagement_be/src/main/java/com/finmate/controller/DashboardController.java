@@ -1,13 +1,16 @@
 package com.finmate.controller;
 
 import com.finmate.dto.response.DashboardResponse;
+import com.finmate.security.UserPrincipal;
 import com.finmate.service.DashboardService;
+import com.finmate.util.UserIdResolver;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -26,8 +29,10 @@ public class DashboardController {
             "All metrics calculated in real-time from transactions following Zero-Based Budgeting principles.")
     @ApiResponse(responseCode = "200", description = "Success")
     public ResponseEntity<DashboardResponse> getDashboard(
-            @Parameter(description = "User ID", required = true) @RequestHeader("User-Id") UUID userId) {
-        DashboardResponse response = dashboardService.getDashboard(userId);
+            @Parameter(description = "User ID", required = false) @RequestHeader(value = "User-Id", required = false) UUID userId,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        UUID resolved = UserIdResolver.resolve(userId, principal);
+        DashboardResponse response = dashboardService.getDashboard(resolved);
         return ResponseEntity.ok(response);
     }
 }

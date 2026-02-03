@@ -33,6 +33,7 @@ public class WalletServiceImpl implements WalletService {
         wallet.setBalance(request.getBalance() != null ? request.getBalance() : BigDecimal.ZERO);
         wallet.setCurrency(request.getCurrency());
         wallet.setIcon(request.getIcon());
+        wallet.setIsDeleted(false);
 
         Wallet savedWallet = walletRepository.save(wallet);
         return mapToResponse(savedWallet);
@@ -40,21 +41,21 @@ public class WalletServiceImpl implements WalletService {
 
     @Override
     public WalletResponse getWalletById(Long id) {
-        Wallet wallet = walletRepository.findById(id)
+        Wallet wallet = walletRepository.findByIdAndIsDeletedFalse(id)
                 .orElseThrow(() -> new RuntimeException("Wallet not found"));
         return mapToResponse(wallet);
     }
 
     @Override
     public List<WalletResponse> getAllWalletsByUser(UUID userId) {
-        return walletRepository.findByUserId(userId).stream()
+        return walletRepository.findByUserIdAndIsDeletedFalse(userId).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
     @Override
     public WalletResponse updateWallet(Long id, WalletRequest request) {
-        Wallet wallet = walletRepository.findById(id)
+        Wallet wallet = walletRepository.findByIdAndIsDeletedFalse(id)
                 .orElseThrow(() -> new RuntimeException("Wallet not found"));
 
         wallet.setName(request.getName());
@@ -68,10 +69,11 @@ public class WalletServiceImpl implements WalletService {
 
     @Override
     public void deleteWallet(Long id) {
-        if (!walletRepository.existsById(id)) {
-            throw new RuntimeException("Wallet not found");
-        }
-        walletRepository.deleteById(id);
+        Wallet wallet = walletRepository.findByIdAndIsDeletedFalse(id)
+                .orElseThrow(() -> new RuntimeException("Wallet not found"));
+        wallet.setIsDeleted(true);
+        wallet.setDeletedAt(java.time.LocalDateTime.now());
+        walletRepository.save(wallet);
     }
 
     private WalletResponse mapToResponse(Wallet wallet) {

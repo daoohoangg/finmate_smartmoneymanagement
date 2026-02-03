@@ -10,4 +10,6 @@ public interface InvestmentPlanRepository extends JpaRepository<InvestmentPlan, 
     List<InvestmentPlan> findByUserId(UUID userId);
 
     List<InvestmentPlan> findByUserIdAndIsActive(UUID userId, Boolean isActive);
+
+    List<InvestmentPlan> findByIsActiveAndNextExecutionDateLessThanEqual(Boolean isActive, java.time.LocalDate date);
 }

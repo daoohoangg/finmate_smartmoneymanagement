@@ -55,6 +55,12 @@ public class UserSettingsServiceImpl implements UserSettingsService {
         if (request.getBudgetAlertThreshold() != null) {
             settings.setBudgetAlertThreshold(request.getBudgetAlertThreshold());
         }
+        if (request.getRoundingScale() != null) {
+            settings.setRoundingScale(request.getRoundingScale());
+        }
+        if (request.getRoundingMode() != null) {
+            settings.setRoundingMode(request.getRoundingMode());
+        }
 
         UserSettings updatedSettings = userSettingsRepository.save(settings);
         return mapToResponse(updatedSettings);
@@ -72,6 +78,8 @@ public class UserSettingsServiceImpl implements UserSettingsService {
         settings.setDefaultCurrency("VND");
         settings.setNotificationEnabled(true);
         settings.setBudgetAlertThreshold(80);
+        settings.setRoundingScale(2);
+        settings.setRoundingMode("HALF_UP");
 
         UserSettings savedSettings = userSettingsRepository.save(settings);
         return mapToResponse(savedSettings);
@@ -84,6 +92,8 @@ public class UserSettingsServiceImpl implements UserSettingsService {
                 settings.getLanguage(),
                 settings.getDefaultCurrency(),
                 settings.getNotificationEnabled(),
-                settings.getBudgetAlertThreshold());
+                settings.getBudgetAlertThreshold(),
+                settings.getRoundingScale(),
+                settings.getRoundingMode());
     }
 }

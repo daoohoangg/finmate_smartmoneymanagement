@@ -32,6 +32,19 @@ public class User {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    @Lob
+    @Column(name = "avatar_blob")
+    private byte[] avatar;
+
+    @Column(name = "avatar_content_type")
+    private String avatarContentType;
+
+    @Column(name = "avatar_file_name")
+    private String avatarFileName;
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Wallet> wallets;
 
@@ -59,5 +72,11 @@ public class User {
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+        updatedAt = createdAt;
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
     }
 }

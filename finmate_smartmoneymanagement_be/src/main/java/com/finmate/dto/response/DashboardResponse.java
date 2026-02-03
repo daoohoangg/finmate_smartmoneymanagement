@@ -14,6 +14,11 @@ public class DashboardResponse {
     private BigDecimal cashflowThisMonth;
     private BigDecimal totalAssigned;
     private BigDecimal totalAvailable;
+    private BigDecimal toBeAssigned;
     private BigDecimal totalSavings;
     private BigDecimal totalInvested;
+    private BigDecimal totalEarmarked;
+    private Integer ageYourMoneyDays;
+    private String topExpenseCategoryName;
+    private BigDecimal topExpenseCategoryAmount;
 }

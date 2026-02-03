@@ -8,4 +8,6 @@ public class CategoryRequest {
     private String name;
     private CategoryType type;
     private String icon;
+    private String color;
+    private Long parentId;
 }

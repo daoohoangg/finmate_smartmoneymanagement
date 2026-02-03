@@ -13,4 +13,8 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     List<Category> findByUserIdAndType(UUID userId, CategoryType type);
 
     List<Category> findByUserIdIsNull(); // System categories
+
+    List<Category> findByUserIdAndNameIgnoreCase(UUID userId, String name);
+
+    List<Category> findByUserIdIsNullAndNameIgnoreCase(String name);
 }

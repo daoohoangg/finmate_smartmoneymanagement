@@ -34,6 +34,12 @@ public class UserSettings {
     @Column(name = "budget_alert_threshold", nullable = false)
     private Integer budgetAlertThreshold;
 
+    @Column(name = "rounding_scale", nullable = false)
+    private Integer roundingScale;
+
+    @Column(name = "rounding_mode", nullable = false, length = 20)
+    private String roundingMode;
+
     @PrePersist
     protected void onCreate() {
         if (darkMode == null) {
@@ -50,6 +56,12 @@ public class UserSettings {
         }
         if (budgetAlertThreshold == null) {
             budgetAlertThreshold = 80;
+        }
+        if (roundingScale == null) {
+            roundingScale = 2;
+        }
+        if (roundingMode == null) {
+            roundingMode = "HALF_UP";
         }
     }
 }

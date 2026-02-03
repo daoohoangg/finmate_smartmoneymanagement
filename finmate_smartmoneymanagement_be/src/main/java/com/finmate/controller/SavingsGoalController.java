@@ -2,7 +2,9 @@ package com.finmate.controller;
 
 import com.finmate.dto.request.SavingsGoalRequest;
 import com.finmate.dto.response.SavingsGoalResponse;
+import com.finmate.security.UserPrincipal;
 import com.finmate.service.SavingsGoalService;
+import com.finmate.util.UserIdResolver;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -11,6 +13,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -32,9 +35,11 @@ public class SavingsGoalController {
             @ApiResponse(responseCode = "400", description = "Invalid data")
     })
     public ResponseEntity<SavingsGoalResponse> createSavingsGoal(
-            @Parameter(description = "User ID", required = true) @RequestHeader("User-Id") UUID userId,
+            @Parameter(description = "User ID", required = false) @RequestHeader(value = "User-Id", required = false) UUID userId,
+            @AuthenticationPrincipal UserPrincipal principal,
             @RequestBody SavingsGoalRequest request) {
-        SavingsGoalResponse response = savingsGoalService.createSavingsGoal(userId, request);
+        UUID resolved = UserIdResolver.resolve(userId, principal);
+        SavingsGoalResponse response = savingsGoalService.createSavingsGoal(resolved, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -54,8 +59,10 @@ public class SavingsGoalController {
     @Operation(summary = "Get all savings goals", description = "Returns all user savings goals with real-time status")
     @ApiResponse(responseCode = "200", description = "Success")
     public ResponseEntity<List<SavingsGoalResponse>> getAllSavingsGoals(
-            @Parameter(description = "User ID", required = true) @RequestHeader("User-Id") UUID userId) {
-        List<SavingsGoalResponse> responses = savingsGoalService.getAllSavingsGoalsByUser(userId);
+            @Parameter(description = "User ID", required = false) @RequestHeader(value = "User-Id", required = false) UUID userId,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        UUID resolved = UserIdResolver.resolve(userId, principal);
+        List<SavingsGoalResponse> responses = savingsGoalService.getAllSavingsGoalsByUser(resolved);
         return ResponseEntity.ok(responses);
     }
 

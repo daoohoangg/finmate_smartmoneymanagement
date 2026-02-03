@@ -61,4 +61,7 @@ public class Transaction {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "investment_plan_id")
     private InvestmentPlan investmentPlan;
+
+    @OneToMany(mappedBy = "transaction", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private java.util.List<TransactionAttachment> attachments;
 }

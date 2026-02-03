@@ -15,7 +15,10 @@ public interface TransactionService {
     List<TransactionResponse> getAllTransactionsByUser(UUID userId);
 
     List<TransactionResponse> getTransactionsByFilter(UUID userId, Long walletId, Long categoryId,
-            LocalDateTime startDate, LocalDateTime endDate);
+            LocalDateTime startDate, LocalDateTime endDate, String keyword, java.math.BigDecimal minAmount,
+            java.math.BigDecimal maxAmount);
+
+    TransactionResponse updateTransaction(Long id, TransactionRequest request);
 
     void deleteTransaction(Long id);
 }

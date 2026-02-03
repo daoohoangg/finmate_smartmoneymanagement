@@ -11,5 +11,7 @@ public class CategoryResponse {
     private String name;
     private CategoryType type;
     private String icon;
+    private String color;
+    private Long parentId;
     private Boolean isSystemCategory;
 }

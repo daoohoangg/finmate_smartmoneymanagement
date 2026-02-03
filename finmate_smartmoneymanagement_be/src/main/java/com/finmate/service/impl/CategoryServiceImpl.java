@@ -32,6 +32,16 @@ public class CategoryServiceImpl implements CategoryService {
         category.setName(request.getName());
         category.setType(request.getType());
         category.setIcon(request.getIcon());
+        category.setColor(request.getColor());
+
+        if (request.getParentId() != null) {
+            Category parent = categoryRepository.findById(request.getParentId())
+                    .orElseThrow(() -> new RuntimeException("Parent category not found"));
+            if (parent.getUser() != null && !parent.getUser().getId().equals(userId)) {
+                throw new RuntimeException("Parent category does not belong to user");
+            }
+            category.setParent(parent);
+        }
 
         Category savedCategory = categoryRepository.save(category);
         return mapToResponse(savedCategory);
@@ -73,6 +83,21 @@ public class CategoryServiceImpl implements CategoryService {
         category.setName(request.getName());
         category.setType(request.getType());
         category.setIcon(request.getIcon());
+        category.setColor(request.getColor());
+
+        if (request.getParentId() != null) {
+            Category parent = categoryRepository.findById(request.getParentId())
+                    .orElseThrow(() -> new RuntimeException("Parent category not found"));
+            if (parent.getId().equals(category.getId())) {
+                throw new RuntimeException("Category cannot be its own parent");
+            }
+            if (parent.getUser() != null && !parent.getUser().getId().equals(category.getUser().getId())) {
+                throw new RuntimeException("Parent category does not belong to user");
+            }
+            category.setParent(parent);
+        } else {
+            category.setParent(null);
+        }
 
         Category updatedCategory = categoryRepository.save(category);
         return mapToResponse(updatedCategory);
@@ -92,6 +117,8 @@ public class CategoryServiceImpl implements CategoryService {
                 category.getName(),
                 category.getType(),
                 category.getIcon(),
+                category.getColor(),
+                category.getParent() != null ? category.getParent().getId() : null,
                 category.getUser() == null);
     }
 }
