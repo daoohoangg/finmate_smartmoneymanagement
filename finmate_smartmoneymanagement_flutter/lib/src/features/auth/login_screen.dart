@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/storage/session_storage.dart';
+import '../settings/settings_screen.dart';
+import 'services/auth_service.dart';
 import '../../shared/widgets/app_text_field.dart';
 import '../../shared/widgets/primary_button.dart';
 import 'forgot_password_screen.dart';
@@ -17,6 +20,100 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
+  bool _isLoading = false;
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _authService = AuthService();
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleLogin() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    if (email.isEmpty || password.isEmpty) {
+      _showSnack('Email and password are required');
+      return;
+    }
+    setState(() => _isLoading = true);
+    try {
+      final response = await _authService.login(email: email, password: password);
+      await SessionStorage.instance.saveAuth(
+        token: response.token,
+        userId: response.userId,
+        email: response.email,
+        fullName: response.fullName,
+      );
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, SettingsScreen.routeName);
+    } catch (e) {
+      _showSnack(e.toString());
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _handleGoogleLogin() async {
+    final idTokenController = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Google ID Token'),
+        content: TextField(
+          controller: idTokenController,
+          decoration: const InputDecoration(
+            hintText: 'Paste Google ID token',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Continue'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    final idToken = idTokenController.text.trim();
+    if (idToken.isEmpty) {
+      _showSnack('ID token is required');
+      return;
+    }
+    setState(() => _isLoading = true);
+    try {
+      final response = await _authService.loginWithGoogle(idToken: idToken);
+      await SessionStorage.instance.saveAuth(
+        token: response.token,
+        userId: response.userId,
+        email: response.email,
+        fullName: response.fullName,
+      );
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, SettingsScreen.routeName);
+    } catch (e) {
+      _showSnack(e.toString());
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -87,16 +184,18 @@ class _LoginScreenState extends State<LoginScreen> {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 24),
-                    const AppTextField(
+                    AppTextField(
                       label: 'Email',
                       hint: 'name@example.com',
                       keyboardType: TextInputType.emailAddress,
+                      controller: _emailController,
                     ),
                     const SizedBox(height: 16),
                     AppTextField(
                       label: 'Password',
                       hint: 'Password',
                       obscureText: _obscurePassword,
+                      controller: _passwordController,
                       suffix: IconButton(
                         icon: Icon(
                           _obscurePassword
@@ -127,7 +226,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     PrimaryButton(
                       label: 'Login',
                       color: AppColors.primaryBlue,
-                      onPressed: () {},
+                      isLoading: _isLoading,
+                      onPressed: _isLoading ? null : _handleLogin,
                     ),
                     const SizedBox(height: 20),
                     Row(
@@ -155,7 +255,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       width: double.infinity,
                       height: 52,
                       child: OutlinedButton.icon(
-                        onPressed: () {},
+                        onPressed: _isLoading ? null : _handleGoogleLogin,
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(color: AppColors.border),
                           shape: RoundedRectangleBorder(

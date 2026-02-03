@@ -46,7 +46,7 @@ public class UserSettings {
             darkMode = false;
         }
         if (language == null) {
-            language = "VI";
+            language = "EN";
         }
         if (defaultCurrency == null) {
             defaultCurrency = "VND";
