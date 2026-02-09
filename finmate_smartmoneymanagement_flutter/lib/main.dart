@@ -54,7 +54,7 @@ class FinMateApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final storage = SessionStorage.instance;
     final hasSession = storage.token != null;
-    final initialRoute = hasSession ? SettingsScreen.routeName : LoginScreen.routeName;
+    final initialRoute = hasSession ? MonthlyDashboardScreen.routeName : LoginScreen.routeName;
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'FinMate',
