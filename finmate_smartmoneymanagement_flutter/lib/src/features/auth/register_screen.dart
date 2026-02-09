@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
-import '../../core/storage/session_storage.dart';
 import '../../shared/widgets/app_text_field.dart';
 import '../../shared/widgets/primary_button.dart';
-import '../onboarding/onboarding_flow_screen.dart';
 import 'services/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -56,19 +54,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
     setState(() => _isLoading = true);
     try {
-      final response = await _authService.register(
+      await _authService.register(
         email: email,
         password: password,
         fullName: fullName,
       );
-      await SessionStorage.instance.saveAuth(
-        token: response.token,
-        userId: response.userId,
-        email: response.email,
-        fullName: response.fullName,
-      );
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, OnboardingFlowScreen.routeName);
+      _showSnack('Account created successfully! Please login.');
+      Navigator.pop(context); // Go back to login screen
     } catch (e) {
       _showSnack(e.toString());
     } finally {
