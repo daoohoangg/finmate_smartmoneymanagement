@@ -1,0 +1,46 @@
+image:
+  api:
+    repository: finmate.azurecr.io/finmate-be
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  web:
+    repository: finmate.azurecr.io/finmate-web
+    tag: "latest"
+    pullPolicy: IfNotPresent
+
+replicaCount:
+  api: 1
+  web: 1
+
+service:
+  api:
+    type: ClusterIP
+    port: 8080
+  web:
+    type: LoadBalancer
+    port: 80
+
+api:
+  env:
+    SPRING_PROFILES_ACTIVE: "prod"
+  secret:
+    create: true
+    name: ""
+    data:
+      DB_PASSWORD: ""
+      CLOUD_API_KEY: ""
+      CLOUD_API_SECRET: ""
+      JWT_SECRET: ""
+      GOOGLE_CLIENT_ID: ""
+
+imagePullSecrets: []
+
+resources:
+  api: {}
+  web: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
