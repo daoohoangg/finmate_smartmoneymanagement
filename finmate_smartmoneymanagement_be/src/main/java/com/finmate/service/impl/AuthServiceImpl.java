@@ -77,39 +77,76 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponse loginWithGoogle(GoogleLoginRequest request) {
-        if (request.getIdToken() == null || request.getIdToken().isBlank()) {
-            throw new RuntimeException("Google ID token is required");
+        String email;
+        String name;
+
+        // Check if accessToken is provided (from Web platform)
+        if (request.getAccessToken() != null && !request.getAccessToken().isBlank()) {
+            // Verify access token via Google's userinfo endpoint
+            RestTemplate restTemplate = new RestTemplate();
+            try {
+                ResponseEntity<Map> response = restTemplate.getForEntity(
+                        "https://www.googleapis.com/oauth2/v3/userinfo?access_token=" + request.getAccessToken(),
+                        Map.class);
+
+                if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+                    throw new RuntimeException("Invalid Google access token");
+                }
+
+                Map<String, Object> userInfo = response.getBody();
+                Object emailObj = userInfo.get("email");
+                Object emailVerified = userInfo.get("email_verified");
+
+                if (emailObj == null) {
+                    throw new RuntimeException("Google token missing email");
+                }
+                if (emailVerified != null && !Boolean.TRUE.equals(emailVerified)) {
+                    throw new RuntimeException("Google email is not verified");
+                }
+
+                email = emailObj.toString();
+                name = userInfo.get("name") != null ? userInfo.get("name").toString() : email;
+
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to verify Google access token: " + e.getMessage());
+            }
         }
-        if (googleClientId == null || googleClientId.isBlank()) {
-            throw new RuntimeException("Google Sign-In is not configured");
+        // Check if idToken is provided (from Mobile/Desktop platforms)
+        else if (request.getIdToken() != null && !request.getIdToken().isBlank()) {
+            if (googleClientId == null || googleClientId.isBlank()) {
+                throw new RuntimeException("Google Sign-In is not configured");
+            }
+
+            RestTemplate restTemplate = new RestTemplate();
+            ResponseEntity<Map> response = restTemplate.getForEntity(
+                    "https://oauth2.googleapis.com/tokeninfo?id_token=" + request.getIdToken(), Map.class);
+
+            if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+                throw new RuntimeException("Invalid Google token");
+            }
+
+            Map<String, Object> tokenInfo = response.getBody();
+            Object aud = tokenInfo.get("aud");
+            Object emailObj = tokenInfo.get("email");
+            Object emailVerified = tokenInfo.get("email_verified");
+
+            if (aud == null || !googleClientId.equals(aud.toString())) {
+                throw new RuntimeException("Google token audience mismatch");
+            }
+            if (emailObj == null) {
+                throw new RuntimeException("Google token missing email");
+            }
+            if (emailVerified != null && !"true".equalsIgnoreCase(emailVerified.toString())) {
+                throw new RuntimeException("Google email is not verified");
+            }
+
+            email = emailObj.toString();
+            name = tokenInfo.get("name") != null ? tokenInfo.get("name").toString() : email;
+        } else {
+            throw new RuntimeException("Google ID token or access token is required");
         }
 
-        RestTemplate restTemplate = new RestTemplate();
-        ResponseEntity<Map> response = restTemplate.getForEntity(
-                "https://oauth2.googleapis.com/tokeninfo?id_token=" + request.getIdToken(), Map.class);
-
-        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
-            throw new RuntimeException("Invalid Google token");
-        }
-
-        Map<String, Object> tokenInfo = response.getBody();
-        Object aud = tokenInfo.get("aud");
-        Object emailObj = tokenInfo.get("email");
-        Object emailVerified = tokenInfo.get("email_verified");
-
-        if (aud == null || !googleClientId.equals(aud.toString())) {
-            throw new RuntimeException("Google token audience mismatch");
-        }
-        if (emailObj == null) {
-            throw new RuntimeException("Google token missing email");
-        }
-        if (emailVerified != null && !"true".equalsIgnoreCase(emailVerified.toString())) {
-            throw new RuntimeException("Google email is not verified");
-        }
-
-        String email = emailObj.toString();
-        String name = tokenInfo.get("name") != null ? tokenInfo.get("name").toString() : email;
-
+        // Find or create user
         User user = userRepository.findByEmail(email).orElseGet(() -> {
             User newUser = new User();
             newUser.setEmail(email);

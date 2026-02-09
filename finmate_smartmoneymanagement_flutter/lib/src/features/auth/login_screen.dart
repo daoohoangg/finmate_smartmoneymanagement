@@ -63,17 +63,21 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _handleGoogleLogin() async {
     setState(() => _isLoading = true);
     try {
-      // Use GoogleSignInService to get ID token
-      final idToken = await GoogleSignInService.instance.signIn();
-      if (idToken == null) {
+      // Use GoogleSignInService to get token result
+      final result = await GoogleSignInService.instance.signIn();
+      if (result == null || !result.isValid) {
         if (mounted) {
           _showSnack('Google Sign-In was cancelled');
         }
         return;
       }
 
-      // Send ID token to backend for authentication
-      final response = await _authService.loginWithGoogle(idToken: idToken);
+      // Send token to backend for authentication
+      // On web: sends accessToken, on mobile/desktop: sends idToken
+      final response = await _authService.loginWithGoogle(
+        idToken: result.idToken,
+        accessToken: result.accessToken,
+      );
       await SessionStorage.instance.saveAuth(
         token: response.token,
         userId: response.userId,

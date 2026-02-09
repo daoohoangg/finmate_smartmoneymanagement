@@ -36,10 +36,20 @@ class AuthService {
     return AuthResponse.fromJson(data as Map<String, dynamic>);
   }
 
-  Future<AuthResponse> loginWithGoogle({required String idToken}) async {
+  /// Login with Google. 
+  /// [idToken] is used for mobile/desktop platforms.
+  /// [accessToken] is used for web platform.
+  Future<AuthResponse> loginWithGoogle({
+    String? idToken,
+    String? accessToken,
+  }) async {
+    final body = <String, dynamic>{};
+    if (idToken != null) body['idToken'] = idToken;
+    if (accessToken != null) body['accessToken'] = accessToken;
+
     final data = await _client.post(
       '/api/auth/google',
-      body: {'idToken': idToken},
+      body: body,
     );
     return AuthResponse.fromJson(data as Map<String, dynamic>);
   }
