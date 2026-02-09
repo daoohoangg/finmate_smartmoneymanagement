@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/storage/session_storage.dart';
-import '../settings/settings_screen.dart';
+import '../dashboard/monthly_dashboard_screen.dart';
 import 'services/auth_service.dart';
 import '../../shared/widgets/app_text_field.dart';
 import '../../shared/widgets/primary_button.dart';
@@ -49,7 +49,7 @@ class _LoginScreenState extends State<LoginScreen> {
         fullName: response.fullName,
       );
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, SettingsScreen.routeName);
+      Navigator.pushReplacementNamed(context, MonthlyDashboardScreen.routeName);
     } catch (e) {
       _showSnack(e.toString());
     } finally {
@@ -99,7 +99,7 @@ class _LoginScreenState extends State<LoginScreen> {
         fullName: response.fullName,
       );
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, SettingsScreen.routeName);
+      Navigator.pushReplacementNamed(context, MonthlyDashboardScreen.routeName);
     } catch (e) {
       _showSnack(e.toString());
     } finally {
