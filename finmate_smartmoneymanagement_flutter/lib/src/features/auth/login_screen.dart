@@ -4,6 +4,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/storage/session_storage.dart';
 import '../dashboard/monthly_dashboard_screen.dart';
 import 'services/auth_service.dart';
+import 'services/google_sign_in_service.dart';
 import '../../shared/widgets/app_text_field.dart';
 import '../../shared/widgets/primary_button.dart';
 import 'forgot_password_screen.dart';
@@ -60,38 +61,23 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleGoogleLogin() async {
-    final idTokenController = TextEditingController();
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Google ID Token'),
-        content: TextField(
-          controller: idTokenController,
-          decoration: const InputDecoration(
-            hintText: 'Paste Google ID token',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Continue'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    final idToken = idTokenController.text.trim();
-    if (idToken.isEmpty) {
-      _showSnack('ID token is required');
-      return;
-    }
     setState(() => _isLoading = true);
     try {
-      final response = await _authService.loginWithGoogle(idToken: idToken);
+      // Use GoogleSignInService to get token result
+      final result = await GoogleSignInService.instance.signIn();
+      if (result == null || !result.isValid) {
+        if (mounted) {
+          _showSnack('Google Sign-In was cancelled');
+        }
+        return;
+      }
+
+      // Send token to backend for authentication
+      // On web: sends accessToken, on mobile/desktop: sends idToken
+      final response = await _authService.loginWithGoogle(
+        idToken: result.idToken,
+        accessToken: result.accessToken,
+      );
       await SessionStorage.instance.saveAuth(
         token: response.token,
         userId: response.userId,
