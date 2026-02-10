@@ -4,16 +4,17 @@ import '../../core/constants/app_colors.dart';
 import '../../shared/widgets/primary_button.dart';
 
 class AddTransactionScreen extends StatefulWidget {
-  const AddTransactionScreen({super.key});
+  const AddTransactionScreen({super.key, this.initialIsExpense = true});
 
   static const String routeName = '/transactions/add';
+  final bool initialIsExpense;
 
   @override
   State<AddTransactionScreen> createState() => _AddTransactionScreenState();
 }
 
 class _AddTransactionScreenState extends State<AddTransactionScreen> {
-  bool _isExpense = true;
+  late bool _isExpense;
   int _selectedCategory = 1;
   final TextEditingController _noteController = TextEditingController();
 
@@ -23,6 +24,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     _CategoryOption(label: 'Shopping', icon: Icons.shopping_bag_outlined, color: Color(0xFF8B5CF6)),
     _CategoryOption(label: 'More', icon: Icons.more_horiz, color: Color(0xFF94A3B8)),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _isExpense = widget.initialIsExpense;
+  }
 
   @override
   void dispose() {

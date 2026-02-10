@@ -1,5 +1,17 @@
 import 'package:flutter/material.dart';
 
+import '../../core/constants/app_colors.dart';
+
+import '../ai_coach/ai_coach_intro_screen.dart';
+import '../analytics/spending_insights_screen.dart';
+import '../budget/allocate_funds_screen.dart';
+import '../categories/manage_categories_screen.dart';
+import '../planning/plan_recommendation_screen.dart';
+import '../recurring/recurring_setup_screen.dart';
+import '../settings/settings_screen.dart';
+import '../transactions/add_transaction_screen.dart';
+import '../transactions/transactions_list_screen.dart';
+
 class MonthlyDashboardScreen extends StatelessWidget {
   const MonthlyDashboardScreen({super.key});
 
@@ -62,7 +74,7 @@ class _BalanceHeader extends StatelessWidget {
                   Text(
                     '9,955,500đ',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Colors.white,
+                          color: _HomeColors.textPrimary,
                           fontSize: 24,
                           fontWeight: FontWeight.w700,
                         ),
@@ -77,7 +89,7 @@ class _BalanceHeader extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                'Tổng số dư',
+                'Total balance',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: _HomeColors.textMuted,
                       fontSize: 13,
@@ -86,26 +98,29 @@ class _BalanceHeader extends StatelessWidget {
             ],
           ),
         ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: _HomeColors.surface,
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: _HomeColors.border),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.swap_horiz, color: _HomeColors.textPrimary, size: 18),
-              const SizedBox(width: 6),
-              Text(
-                'Đổi ví',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: _HomeColors.textPrimary,
-                      fontWeight: FontWeight.w600,
-                    ),
-              ),
-            ],
+        GestureDetector(
+          onTap: () => Navigator.pushNamed(context, SettingsScreen.routeName),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: _HomeColors.surface,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: _HomeColors.border),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.swap_horiz, color: _HomeColors.textPrimary, size: 18),
+                const SizedBox(width: 6),
+                Text(
+                  'Switch wallet',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: _HomeColors.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ],
+            ),
           ),
         ),
       ],
@@ -162,7 +177,7 @@ class _WalletCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 10),
                   Text(
-                    'Cá nhân',
+                    'Personal',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.w600,
@@ -206,7 +221,7 @@ class _WalletCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 10),
                   Text(
-                    'so với tháng trước',
+                    'vs last month',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Colors.white70,
                         ),
@@ -226,48 +241,65 @@ class _QuickActionsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    void openAddTransaction({required bool isExpense}) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => AddTransactionScreen(initialIsExpense: isExpense),
+        ),
+      );
+    }
+
     final actions = [
       _ActionData(
-        label: 'Nhập bằng\ngiọng nói',
+        label: 'Voice\nentry',
         icon: Icons.mic_rounded,
         colors: const [Color(0xFFCE3CC5), Color(0xFF7D5CFF)],
+        onTap: () => Navigator.pushNamed(context, AiCoachIntroScreen.routeName),
       ),
       _ActionData(
-        label: 'Quét\nHóa đơn',
+        label: 'Scan\nreceipt',
         icon: Icons.qr_code_scanner,
         colors: const [Color(0xFF1FB5FF), Color(0xFF3E60FF)],
+        onTap: () => openAddTransaction(isExpense: true),
       ),
       _ActionData(
-        label: 'Nhập\nChi tiêu',
+        label: 'Add\nexpense',
         icon: Icons.shopping_cart_outlined,
         colors: const [Color(0xFFFF8A34), Color(0xFFFF5F27)],
+        onTap: () => openAddTransaction(isExpense: true),
       ),
       _ActionData(
-        label: 'Nhập\nThu nhập',
+        label: 'Add\nincome',
         icon: Icons.account_balance_wallet_outlined,
         colors: const [Color(0xFF12D08E), Color(0xFF11B86A)],
+        onTap: () => openAddTransaction(isExpense: false),
       ),
       _ActionData(
-        label: 'Quản lý\nDanh mục',
+        label: 'Manage\ncategories',
         icon: Icons.settings,
         colors: const [Color(0xFF7A5CFF), Color(0xFF4F8DFF)],
+        onTap: () => Navigator.pushNamed(context, ManageCategoriesScreen.routeName),
       ),
       _ActionData(
-        label: 'Chuyển\ntiền',
+        label: 'Transfer',
         icon: Icons.swap_horiz,
         colors: const [Color(0xFF6E63FF), Color(0xFF4B4FF5)],
+        onTap: () => Navigator.pushNamed(context, AllocateFundsScreen.routeName),
       ),
       _ActionData(
-        label: 'Sổ Nợ',
+        label: 'Debt\nbook',
         icon: Icons.receipt_long,
         colors: const [Color(0xFFFFA630), Color(0xFFFF7C1F)],
         badge: 'BETA',
+        onTap: () => Navigator.pushNamed(context, TransactionsListScreen.routeName),
       ),
       _ActionData(
-        label: 'Giao dịch\nđịnh kỳ',
+        label: 'Recurring\ntransactions',
         icon: Icons.autorenew,
         colors: const [Color(0xFF9D6BFF), Color(0xFF6F5CFF)],
         badge: 'BETA',
+        onTap: () => Navigator.pushNamed(context, RecurringSetupScreen.routeName),
       ),
     ];
 
@@ -298,8 +330,8 @@ class _SummaryRow extends StatelessWidget {
       children: const [
         Expanded(
           child: _MiniSummaryCard(
-            title: 'Chi phí',
-            subtitle: 'Hôm nay',
+            title: 'Expenses',
+            subtitle: 'Today',
             amount: '45,000đ',
             amountColor: _HomeColors.danger,
             icon: Icons.trending_down,
@@ -310,8 +342,8 @@ class _SummaryRow extends StatelessWidget {
         SizedBox(width: 14),
         Expanded(
           child: _MiniSummaryCard(
-            title: 'Thu nhập',
-            subtitle: 'Hôm nay',
+            title: 'Income',
+            subtitle: 'Today',
             amount: '10,000,500đ',
             amountColor: _HomeColors.success,
             icon: Icons.trending_up,
@@ -414,68 +446,74 @@ class _GoalsSection extends StatelessWidget {
         Row(
           children: [
             Text(
-              'Mục tiêu',
+              'Goals',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: _HomeColors.textPrimary,
                     fontWeight: FontWeight.w600,
                   ),
             ),
             const Spacer(),
-            Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(
-                color: _HomeColors.surface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: _HomeColors.border),
+            GestureDetector(
+              onTap: () => Navigator.pushNamed(context, PlanRecommendationScreen.routeName),
+              child: Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: _HomeColors.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: _HomeColors.border),
+                ),
+                child: const Icon(Icons.add, color: _HomeColors.textPrimary, size: 18),
               ),
-              child: const Icon(Icons.add, color: _HomeColors.textPrimary, size: 18),
             ),
           ],
         ),
         const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          decoration: BoxDecoration(
-            color: _HomeColors.surface,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: _HomeColors.border),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: _HomeColors.cardAccent,
-                  borderRadius: BorderRadius.circular(14),
+        GestureDetector(
+          onTap: () => Navigator.pushNamed(context, PlanRecommendationScreen.routeName),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            decoration: BoxDecoration(
+              color: _HomeColors.surface,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: _HomeColors.border),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: _HomeColors.cardAccent,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(Icons.flag, color: _HomeColors.textPrimary, size: 18),
                 ),
-                child: const Icon(Icons.flag, color: _HomeColors.textPrimary, size: 18),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Mục tiêu tiết kiệm',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: _HomeColors.textPrimary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Bắt đầu từ 2,000,000đ',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: _HomeColors.textMuted,
-                          ),
-                    ),
-                  ],
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Savings goal',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: _HomeColors.textPrimary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Starting from 2,000,000đ',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: _HomeColors.textMuted,
+                            ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const Icon(Icons.chevron_right, color: _HomeColors.textMuted),
-            ],
+                const Icon(Icons.chevron_right, color: _HomeColors.textMuted),
+              ],
+            ),
           ),
         ),
       ],
@@ -496,14 +534,35 @@ class _HomeBottomNav extends StatelessWidget {
           color: _HomeColors.navBar,
           border: Border(top: BorderSide(color: _HomeColors.navBorder)),
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _NavItem(label: 'Tổng quan', icon: Icons.home_filled, active: true),
-            _NavItem(label: 'Lịch sử', icon: Icons.event_note_outlined),
-            _PrimaryNavButton(),
-            _NavItem(label: 'Thống kê', icon: Icons.bar_chart_rounded),
-            _NavItem(label: 'Cài đặt', icon: Icons.settings_outlined),
+            const _NavItem(label: 'Overview', icon: Icons.home_filled, active: true),
+            _NavItem(
+              label: 'History',
+              icon: Icons.event_note_outlined,
+              onTap: () => Navigator.pushNamed(context, TransactionsListScreen.routeName),
+            ),
+            _PrimaryNavButton(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const AddTransactionScreen(initialIsExpense: true),
+                  ),
+                );
+              },
+            ),
+            _NavItem(
+              label: 'Stats',
+              icon: Icons.bar_chart_rounded,
+              onTap: () => Navigator.pushNamed(context, SpendingInsightsScreen.routeName),
+            ),
+            _NavItem(
+              label: 'Settings',
+              icon: Icons.settings_outlined,
+              onTap: () => Navigator.pushNamed(context, SettingsScreen.routeName),
+            ),
           ],
         ),
       ),
@@ -516,57 +575,68 @@ class _NavItem extends StatelessWidget {
     required this.label,
     required this.icon,
     this.active = false,
+    this.onTap,
   });
 
   final String label;
   final IconData icon;
   final bool active;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final color = active ? _HomeColors.primary : _HomeColors.textMuted;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, color: color, size: 22),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: color,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-              ),
-        ),
-      ],
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 22),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: color,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+        ],
+      ),
     );
   }
 }
 
 class _PrimaryNavButton extends StatelessWidget {
-  const _PrimaryNavButton();
+  const _PrimaryNavButton({this.onTap});
+
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 54,
-      height: 54,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: const LinearGradient(
-          colors: [Color(0xFF2F8CFF), Color(0xFF1E6CFF)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 54,
+        height: 54,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: const LinearGradient(
+            colors: [Color(0xFF2F8CFF), Color(0xFF1E6CFF)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-        ],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: const Icon(Icons.add, color: Colors.white, size: 28),
       ),
-      child: const Icon(Icons.add, color: Colors.white, size: 28),
     );
   }
 }
@@ -578,67 +648,71 @@ class _ActionItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: data.colors,
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+    return GestureDetector(
+      onTap: data.onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: data.colors,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: [
+                    BoxShadow(
+                      color: data.colors.first.withOpacity(0.35),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
                 ),
-                borderRadius: BorderRadius.circular(18),
-                boxShadow: [
-                  BoxShadow(
-                    color: data.colors.first.withOpacity(0.35),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
+                child: Icon(data.icon, color: Colors.white, size: 24),
               ),
-              child: Icon(data.icon, color: Colors.white, size: 24),
-            ),
-            if (data.badge != null)
-              Positioned(
-                top: -6,
-                right: -8,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: _HomeColors.badge,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    data.badge!,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: _HomeColors.badgeText,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w700,
-                        ),
+              if (data.badge != null)
+                Positioned(
+                  top: -6,
+                  right: -8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: _HomeColors.badge,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      data.badge!,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: _HomeColors.badgeText,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
                   ),
                 ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Text(
-          data.label,
-          textAlign: TextAlign.center,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: _HomeColors.textPrimary,
-                fontSize: 11,
-                height: 1.2,
-              ),
-        ),
-      ],
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            data.label,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: _HomeColors.textPrimary,
+                  fontSize: 11,
+                  height: 1.2,
+                ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -648,12 +722,14 @@ class _ActionData {
     required this.label,
     required this.icon,
     required this.colors,
+    this.onTap,
     this.badge,
   });
 
   final String label;
   final IconData icon;
   final List<Color> colors;
+  final VoidCallback? onTap;
   final String? badge;
 }
 
@@ -683,17 +759,17 @@ class _DiagonalLinesPainter extends CustomPainter {
 }
 
 class _HomeColors {
-  static const Color background = Color(0xFF0B1020);
-  static const Color surface = Color(0xFF151B2D);
-  static const Color border = Color(0xFF222A3D);
-  static const Color navBar = Color(0xFF10182B);
-  static const Color navBorder = Color(0xFF1B2336);
-  static const Color textPrimary = Color(0xFFF5F7FF);
-  static const Color textMuted = Color(0xFF8B95B9);
-  static const Color primary = Color(0xFF2F8CFF);
-  static const Color success = Color(0xFF2CD07E);
-  static const Color danger = Color(0xFFFF5B5B);
+  static const Color background = AppColors.page;
+  static const Color surface = AppColors.card;
+  static const Color border = AppColors.border;
+  static const Color navBar = AppColors.card;
+  static const Color navBorder = AppColors.border;
+  static const Color textPrimary = AppColors.textPrimary;
+  static const Color textMuted = AppColors.textSecondary;
+  static const Color primary = AppColors.primaryBlue;
+  static const Color success = AppColors.success;
+  static const Color danger = AppColors.primaryRed;
   static const Color badge = Color(0xFFFFB423);
-  static const Color badgeText = Color(0xFF2A1A00);
-  static const Color cardAccent = Color(0xFF1D2335);
+  static const Color badgeText = Color(0xFF5C3B00);
+  static const Color cardAccent = AppColors.fieldBackground;
 }
