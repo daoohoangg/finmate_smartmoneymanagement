@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../shared/widgets/finmate_bottom_nav.dart';
 import 'ai_coach_chat_screen.dart';
 
 class AiCoachIntroScreen extends StatefulWidget {
@@ -48,6 +49,7 @@ class _AiCoachIntroScreenState extends State<AiCoachIntroScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
+      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.overview),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),

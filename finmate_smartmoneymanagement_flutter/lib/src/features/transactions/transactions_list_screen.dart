@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../shared/widgets/finmate_bottom_nav.dart';
 import 'filter_transactions_screen.dart';
 import 'search_results_screen.dart';
 
@@ -26,11 +27,7 @@ class TransactionsListScreen extends StatelessWidget {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.primaryRed,
-        onPressed: () {},
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
+      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.history),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),

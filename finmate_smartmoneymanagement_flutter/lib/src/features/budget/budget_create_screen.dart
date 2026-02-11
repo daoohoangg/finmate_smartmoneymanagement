@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../shared/widgets/primary_button.dart';
+import '../../shared/widgets/finmate_bottom_nav.dart';
+import '../categories/create_category_screen.dart';
+import '../categories/models/category.dart';
+import '../categories/services/category_service.dart';
+import 'models/budget.dart';
+import 'services/budget_service.dart';
 
 class BudgetCreateScreen extends StatefulWidget {
   const BudgetCreateScreen({super.key});
@@ -14,10 +20,139 @@ class BudgetCreateScreen extends StatefulWidget {
 
 class _BudgetCreateScreenState extends State<BudgetCreateScreen> {
   String _period = 'Month';
-  String _category = 'Select a category';
+  int? _selectedCategoryId;
+  List<Category>? _categories;
+  bool _isLoadingCategories = false;
+  String? _categoriesError;
+  bool _isSaving = false;
+
+  TextEditingController? _amountController;
+  CategoryService? _categoryService;
+  BudgetService? _budgetService;
+
+  CategoryService get _service => _categoryService ??= CategoryService();
+  BudgetService get _budget => _budgetService ??= BudgetService();
+
+  @override
+  void initState() {
+    super.initState();
+    _amountController ??= TextEditingController();
+    _loadCategories();
+  }
+
+  @override
+  void dispose() {
+    _amountController?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadCategories({int? selectId}) async {
+    setState(() {
+      _isLoadingCategories = true;
+      _categoriesError = null;
+    });
+    try {
+      final categories = await _service.getCategories(type: CategoryType.expense);
+      if (!mounted) return;
+      setState(() {
+        _categories = categories;
+        final desired = selectId ?? _selectedCategoryId;
+        if (desired != null && categories.any((c) => c.id == desired)) {
+          _selectedCategoryId = desired;
+        } else {
+          _selectedCategoryId = null;
+        }
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _categoriesError = e.toString();
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingCategories = false);
+      }
+    }
+  }
+
+  Category? _selectedCategory() {
+    final id = _selectedCategoryId;
+    if (id == null) return null;
+    final categories = _categories ?? const <Category>[];
+    for (final category in categories) {
+      if (category.id == id) return category;
+    }
+    return null;
+  }
+
+  Future<void> _openCreateCategory() async {
+    final created = await Navigator.pushNamed(
+      context,
+      CreateCategoryScreen.routeName,
+      arguments: CategoryType.expense,
+    );
+    if (created == true) {
+      _loadCategories();
+    }
+  }
+
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  num? _parseAmount(TextEditingController controller) {
+    final raw = controller.text.trim();
+    if (raw.isEmpty) return null;
+    final cleaned = raw.replaceAll(RegExp(r'[^0-9]'), '');
+    if (cleaned.isEmpty) return null;
+    return int.tryParse(cleaned);
+  }
+
+  BudgetPeriod _selectedPeriod() {
+    return _period == 'Week' ? BudgetPeriod.week : BudgetPeriod.month;
+  }
+
+  Future<void> _handleSaveBudget() async {
+    if (_isSaving) return;
+    final categoryId = _selectedCategoryId;
+    if (categoryId == null) {
+      _showSnack('Please select a category');
+      return;
+    }
+    final amountController = _amountController;
+    if (amountController == null) {
+      _showSnack('Amount is required');
+      return;
+    }
+    final amount = _parseAmount(amountController);
+    if (amount == null || amount <= 0) {
+      _showSnack('Please enter a valid amount');
+      return;
+    }
+    setState(() => _isSaving = true);
+    try {
+      await _budget.createBudget(
+        categoryId: categoryId,
+        amountLimit: amount,
+        period: _selectedPeriod(),
+      );
+      if (!mounted) return;
+      _showSnack('Budget saved successfully');
+      Navigator.pop(context, true);
+    } catch (e) {
+      _showSnack(e.toString());
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final amountController = _amountController ??= TextEditingController();
+    final categories = _categories ?? const <Category>[];
+    final amountText = amountController.text.trim();
     return Scaffold(
       backgroundColor: AppColors.page,
       appBar: AppBar(
@@ -27,6 +162,7 @@ class _BudgetCreateScreenState extends State<BudgetCreateScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
+      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.overview),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -46,8 +182,8 @@ class _BudgetCreateScreenState extends State<BudgetCreateScreen> {
                         ?.copyWith(fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 6),
-                  DropdownButtonFormField<String>(
-                    value: _category,
+                  DropdownButtonFormField<int?>(
+                    value: _selectedCategoryId,
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: AppColors.card,
@@ -60,15 +196,50 @@ class _BudgetCreateScreenState extends State<BudgetCreateScreen> {
                         borderSide: const BorderSide(color: AppColors.border),
                       ),
                     ),
-                    items: const [
-                      DropdownMenuItem(value: 'Select a category', child: Text('Select a category')),
-                      DropdownMenuItem(value: 'Food & Drinks', child: Text('Food & Drinks')),
-                      DropdownMenuItem(value: 'Transport', child: Text('Transport')),
+                    items: [
+                      const DropdownMenuItem<int?>(
+                        value: null,
+                        child: Text('Select a category'),
+                      ),
+                      ...categories.map(
+                        (category) => DropdownMenuItem<int?>(
+                          value: category.id,
+                          child: Text(category.name),
+                        ),
+                      ),
                     ],
-                    onChanged: (value) {
-                      if (value == null) return;
-                      setState(() => _category = value);
-                    },
+                    onChanged: _isLoadingCategories
+                        ? null
+                        : (value) => setState(() => _selectedCategoryId = value),
+                  ),
+                  if (_categoriesError != null) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _categoriesError!,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(color: AppColors.primaryRed),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: _loadCategories,
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: _openCreateCategory,
+                      icon: const Icon(Icons.add_circle_outline),
+                      label: const Text('Create new category'),
+                    ),
                   ),
                   const SizedBox(height: 14),
                   Text(
@@ -80,7 +251,9 @@ class _BudgetCreateScreenState extends State<BudgetCreateScreen> {
                   ),
                   const SizedBox(height: 6),
                   TextField(
+                    controller: amountController,
                     keyboardType: TextInputType.number,
+                    onChanged: (_) => setState(() {}),
                     decoration: InputDecoration(
                       hintText: '0',
                       suffixText: 'VND',
@@ -125,12 +298,17 @@ class _BudgetCreateScreenState extends State<BudgetCreateScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  _SummaryCard(period: _period),
+                  _SummaryCard(
+                    period: _period,
+                    category: _selectedCategory()?.name ?? '---',
+                    limit: amountText.isEmpty ? '---' : amountText,
+                  ),
                   const SizedBox(height: 22),
                   PrimaryButton(
                     label: 'Save Budget',
                     color: AppColors.primaryBlue,
-                    onPressed: () {},
+                    isLoading: _isSaving,
+                    onPressed: _isSaving ? null : _handleSaveBudget,
                   ),
                   const SizedBox(height: 10),
                   Center(
@@ -219,9 +397,15 @@ class _PeriodChip extends StatelessWidget {
 }
 
 class _SummaryCard extends StatelessWidget {
-  const _SummaryCard({required this.period});
+  const _SummaryCard({
+    required this.period,
+    required this.category,
+    required this.limit,
+  });
 
   final String period;
+  final String category;
+  final String limit;
 
   @override
   Widget build(BuildContext context) {
@@ -245,8 +429,8 @@ class _SummaryCard extends StatelessWidget {
           const SizedBox(height: 8),
           Row(
             children: [
-              _SummaryItem(label: 'Category', value: '---'),
-              _SummaryItem(label: 'Limit', value: '---'),
+              _SummaryItem(label: 'Category', value: category),
+              _SummaryItem(label: 'Limit', value: limit),
               _SummaryItem(label: 'Frequency', value: period),
             ],
           ),

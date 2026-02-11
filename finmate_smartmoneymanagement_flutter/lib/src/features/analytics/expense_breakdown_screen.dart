@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../shared/widgets/finmate_bottom_nav.dart';
 
 class ExpenseBreakdownScreen extends StatelessWidget {
   const ExpenseBreakdownScreen({super.key});
@@ -20,6 +21,7 @@ class ExpenseBreakdownScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
       ),
+      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.stats),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),

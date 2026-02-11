@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../shared/widgets/primary_button.dart';
+import 'models/category.dart';
+import 'services/category_service.dart';
+import 'utils/category_ui.dart';
+import '../../shared/widgets/finmate_bottom_nav.dart';
 
 class CreateCategoryScreen extends StatefulWidget {
   const CreateCategoryScreen({super.key});
@@ -13,15 +17,140 @@ class CreateCategoryScreen extends StatefulWidget {
 }
 
 class _CreateCategoryScreenState extends State<CreateCategoryScreen> {
+  static const List<_ParentTemplate> _requiredParents = [
+    _ParentTemplate(
+      name: 'Necessary',
+      icon: Icons.home_outlined,
+      color: Color(0xFFF59E0B),
+    ),
+    _ParentTemplate(
+      name: 'Accumulation',
+      icon: Icons.savings_outlined,
+      color: Color(0xFF2CB67D),
+    ),
+    _ParentTemplate(
+      name: 'Flexibility',
+      icon: Icons.auto_awesome_outlined,
+      color: Color(0xFF6366F1),
+    ),
+  ];
+
   final TextEditingController _nameController = TextEditingController();
-  String _parent = 'Food & Drink';
   Color _color = const Color(0xFFE11D48);
   IconData _icon = Icons.shopping_basket_outlined;
+  CategoryType _type = CategoryType.expense;
+  int? _parentCategoryId;
+  List<Category> _parentOptions = [];
+  bool _isLoadingParents = false;
+  bool _isSaving = false;
+  bool _didLoadArgs = false;
+
+  CategoryService? _categoryService;
+
+  CategoryService get _service => _categoryService ??= CategoryService();
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didLoadArgs) return;
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is CategoryType) {
+      _type = args;
+    }
+    _didLoadArgs = true;
+    _loadParents();
+  }
 
   @override
   void dispose() {
     _nameController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadParents() async {
+    setState(() => _isLoadingParents = true);
+    try {
+      final categories = await _service.getCategories(type: _type);
+      final topLevel = categories.where((category) => category.parentId == null).toList();
+      final seededParents = await _ensureRequiredParents(topLevel);
+      if (!mounted) return;
+      setState(() {
+        _parentOptions = seededParents;
+        _parentCategoryId ??= seededParents.isNotEmpty ? seededParents.first.id : null;
+        if (_parentCategoryId != null &&
+            !seededParents.any((category) => category.id == _parentCategoryId)) {
+          _parentCategoryId = seededParents.isNotEmpty ? seededParents.first.id : null;
+        }
+      });
+    } catch (e) {
+      _showSnack(e.toString());
+    } finally {
+      if (mounted) setState(() => _isLoadingParents = false);
+    }
+  }
+
+  Future<List<Category>> _ensureRequiredParents(List<Category> topLevel) async {
+    final byNormalizedName = <String, Category>{
+      for (final category in topLevel) _normalize(category.name): category,
+    };
+    final result = <Category>[];
+    for (final template in _requiredParents) {
+      final key = _normalize(template.name);
+      var category = byNormalizedName[key];
+      if (category == null) {
+        category = await _service.createCategory(
+          name: template.name,
+          type: _type,
+          icon: CategoryUi.iconToString(template.icon),
+          color: CategoryUi.colorToString(template.color),
+        );
+        byNormalizedName[key] = category;
+      }
+      result.add(category);
+    }
+    return result;
+  }
+
+  String _normalize(String value) {
+    return value.trim().toLowerCase();
+  }
+
+  Future<void> _handleSave() async {
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      _showSnack('Category name is required');
+      return;
+    }
+    final parentId = _parentCategoryId;
+    if (parentId == null) {
+      _showSnack('Please select a parent category');
+      return;
+    }
+    setState(() => _isSaving = true);
+    try {
+      await _service.createCategory(
+        name: name,
+        type: _type,
+        icon: CategoryUi.iconToString(_icon),
+        color: CategoryUi.colorToString(_color),
+        parentId: parentId,
+      );
+      if (!mounted) return;
+      _showSnack('Category created successfully');
+      Navigator.pop(context, true);
+    } catch (e) {
+      _showSnack(e.toString());
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   @override
@@ -36,7 +165,7 @@ class _CreateCategoryScreenState extends State<CreateCategoryScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () {},
+            onPressed: _isSaving ? null : _handleSave,
             child: const Text(
               'Save',
               style: TextStyle(color: AppColors.primaryRed, fontWeight: FontWeight.w600),
@@ -44,6 +173,7 @@ class _CreateCategoryScreenState extends State<CreateCategoryScreen> {
           ),
         ],
       ),
+      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.settings),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -103,8 +233,13 @@ class _CreateCategoryScreenState extends State<CreateCategoryScreen> {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  DropdownButtonFormField<String>(
-                    value: _parent,
+                  if (_isLoadingParents)
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 8),
+                      child: LinearProgressIndicator(minHeight: 2),
+                    ),
+                  DropdownButtonFormField<int?>(
+                    value: _parentCategoryId,
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: AppColors.card,
@@ -117,21 +252,24 @@ class _CreateCategoryScreenState extends State<CreateCategoryScreen> {
                         borderSide: const BorderSide(color: AppColors.border),
                       ),
                     ),
-                    items: const [
-                      DropdownMenuItem(value: 'Food & Drink', child: Text('Food & Drink')),
-                      DropdownMenuItem(value: 'Transport', child: Text('Transport')),
-                      DropdownMenuItem(value: 'Shopping', child: Text('Shopping')),
+                    items: [
+                      ..._parentOptions.map(
+                        (category) => DropdownMenuItem<int?>(
+                          value: category.id,
+                          child: Text(category.name),
+                        ),
+                      ),
                     ],
-                    onChanged: (value) {
-                      if (value == null) return;
-                      setState(() => _parent = value);
-                    },
+                    onChanged: _isLoadingParents
+                        ? null
+                        : (value) => setState(() => _parentCategoryId = value),
                   ),
                   const SizedBox(height: 24),
                   PrimaryButton(
                     label: 'Save Category',
                     color: AppColors.primaryRed,
-                    onPressed: () {},
+                    isLoading: _isSaving,
+                    onPressed: _isSaving ? null : _handleSave,
                   ),
                 ],
               ),
@@ -141,6 +279,18 @@ class _CreateCategoryScreenState extends State<CreateCategoryScreen> {
       ),
     );
   }
+}
+
+class _ParentTemplate {
+  const _ParentTemplate({
+    required this.name,
+    required this.icon,
+    required this.color,
+  });
+
+  final String name;
+  final IconData icon;
+  final Color color;
 }
 
 class _PreviewBadge extends StatelessWidget {

@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import 'create_category_screen.dart';
 import 'delete_category_screen.dart';
+import 'models/category.dart';
+import 'services/category_service.dart';
+import 'utils/category_ui.dart';
+import '../../shared/widgets/finmate_bottom_nav.dart';
 
 class ManageCategoriesScreen extends StatefulWidget {
   const ManageCategoriesScreen({super.key});
@@ -15,45 +19,143 @@ class ManageCategoriesScreen extends StatefulWidget {
 
 class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
   bool _isExpense = true;
+  bool _isLoading = false;
+  String? _errorMessage;
+  List<Category> _categories = [];
 
-  final List<_CategoryItem> _items = const [
-    _CategoryItem(
-      name: 'Food & Drinks',
-      count: 8,
-      icon: Icons.restaurant_outlined,
-      color: Color(0xFFFF8A00),
-    ),
-    _CategoryItem(
-      name: 'Transport',
-      count: 4,
-      icon: Icons.directions_car_filled,
-      color: Color(0xFF3B82F6),
-    ),
-    _CategoryItem(
-      name: 'Shopping',
-      count: 12,
-      icon: Icons.shopping_bag_outlined,
-      color: Color(0xFF8B5CF6),
-    ),
-    _CategoryItem(
-      name: 'Housing & Rent',
-      count: 2,
-      icon: Icons.home_work_outlined,
-      color: Color(0xFF22C55E),
-    ),
-    _CategoryItem(
-      name: 'Health & Wellness',
-      count: 5,
-      icon: Icons.favorite_border,
-      color: Color(0xFFF97316),
-    ),
-    _CategoryItem(
-      name: 'Entertainment',
-      count: 6,
-      icon: Icons.movie_outlined,
-      color: Color(0xFFEAB308),
-    ),
-  ];
+  CategoryService? _categoryService;
+
+  CategoryService get _service => _categoryService ??= CategoryService();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCategories();
+  }
+
+  Future<void> _loadCategories() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    try {
+      final type = _isExpense ? CategoryType.expense : CategoryType.income;
+      final categories = await _service.getCategories(type: type);
+      if (!mounted) return;
+      setState(() {
+        _categories = categories;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = e.toString();
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  List<_CategoryItem> _buildItems() {
+    final parentCategories = _categories.where((category) => category.parentId == null).toList()
+      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+
+    final childCounts = <int, int>{};
+    for (final category in _categories) {
+      final parentId = category.parentId;
+      if (parentId == null) continue;
+      childCounts[parentId] = (childCounts[parentId] ?? 0) + 1;
+    }
+
+    return parentCategories
+        .map(
+          (category) => _CategoryItem(
+            name: category.name,
+            count: childCounts[category.id] ?? 0,
+            icon: CategoryUi.iconFromString(category.icon),
+            color: CategoryUi.colorFromString(category.color, fallback: AppColors.primaryBlue),
+            isSystemCategory: category.isSystemCategory,
+          ),
+        )
+        .toList();
+  }
+
+  Widget _buildStatusMessage(
+    BuildContext context,
+    String message, {
+    String? actionLabel,
+    VoidCallback? onAction,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      child: Center(
+        child: Column(
+          children: [
+            Text(
+              message,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(color: AppColors.textSecondary),
+              textAlign: TextAlign.center,
+            ),
+            if (actionLabel != null && onAction != null) ...[
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: onAction,
+                child: Text(actionLabel),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryContent(BuildContext context) {
+    if (_isLoading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 24),
+        child: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+    if (_errorMessage != null) {
+      return _buildStatusMessage(
+        context,
+        _errorMessage!,
+        actionLabel: 'Retry',
+        onAction: _loadCategories,
+      );
+    }
+    final items = _buildItems();
+    if (items.isEmpty) {
+      return _buildStatusMessage(
+        context,
+        'No categories yet. Create your first one.',
+      );
+    }
+    return Column(
+      children: items
+          .map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _CategoryCard(
+                item: item,
+                onDelete: item.isSystemCategory
+                    ? null
+                    : () => Navigator.pushNamed(
+                          context,
+                          DeleteCategoryScreen.routeName,
+                        ),
+              ),
+            ),
+          )
+          .toList(),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,8 +171,18 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.primaryRed,
         child: const Icon(Icons.add, color: Colors.white),
-        onPressed: () => Navigator.pushNamed(context, CreateCategoryScreen.routeName),
+        onPressed: () async {
+          final created = await Navigator.pushNamed(
+            context,
+            CreateCategoryScreen.routeName,
+            arguments: _isExpense ? CategoryType.expense : CategoryType.income,
+          );
+          if (created == true) {
+            _loadCategories();
+          }
+        },
       ),
+      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.settings),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -84,25 +196,14 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
                     leftLabel: 'Expense',
                     rightLabel: 'Income',
                     isLeftSelected: _isExpense,
-                    onChanged: (value) => setState(() => _isExpense = value),
+                    onChanged: (value) {
+                      if (_isExpense == value) return;
+                      setState(() => _isExpense = value);
+                      _loadCategories();
+                    },
                   ),
                   const SizedBox(height: 16),
-                  Column(
-                    children: _items
-                        .map(
-                          (item) => Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: _CategoryCard(
-                              item: item,
-                              onDelete: () => Navigator.pushNamed(
-                                context,
-                                DeleteCategoryScreen.routeName,
-                              ),
-                            ),
-                          ),
-                        )
-                        .toList(),
-                  ),
+                  _buildCategoryContent(context),
                   const SizedBox(height: 80),
                 ],
               ),
@@ -209,19 +310,21 @@ class _CategoryItem {
     required this.count,
     required this.icon,
     required this.color,
+    required this.isSystemCategory,
   });
 
   final String name;
   final int count;
   final IconData icon;
   final Color color;
+  final bool isSystemCategory;
 }
 
 class _CategoryCard extends StatelessWidget {
-  const _CategoryCard({required this.item, required this.onDelete});
+  const _CategoryCard({required this.item, this.onDelete});
 
   final _CategoryItem item;
-  final VoidCallback onDelete;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -265,14 +368,16 @@ class _CategoryCard extends StatelessWidget {
               ],
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.edit, color: AppColors.textMuted, size: 18),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline, color: AppColors.primaryRed, size: 18),
-            onPressed: onDelete,
-          ),
+          if (!item.isSystemCategory)
+            IconButton(
+              icon: const Icon(Icons.edit, color: AppColors.textMuted, size: 18),
+              onPressed: () {},
+            ),
+          if (!item.isSystemCategory)
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: AppColors.primaryRed, size: 18),
+              onPressed: onDelete,
+            ),
         ],
       ),
     );

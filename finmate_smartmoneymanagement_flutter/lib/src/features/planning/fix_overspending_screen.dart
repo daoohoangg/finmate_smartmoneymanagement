@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../shared/widgets/primary_button.dart';
+import '../../shared/widgets/finmate_bottom_nav.dart';
 import '../settings/settings_screen.dart';
 
 class FixOverspendingScreen extends StatefulWidget {
@@ -215,6 +216,7 @@ class _FixOverspendingScreenState extends State<FixOverspendingScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
+      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.overview),
       body: SafeArea(
         child: Column(
           children: [

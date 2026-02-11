@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../shared/widgets/finmate_bottom_nav.dart';
 
 class WeeklyCalendarScreen extends StatelessWidget {
   const WeeklyCalendarScreen({super.key});
@@ -28,12 +29,7 @@ class WeeklyCalendarScreen extends StatelessWidget {
           ),
         ],
       ),
-      bottomNavigationBar: const _BottomNav(),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.primaryBlue,
-        onPressed: () {},
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
+      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.overview),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -337,57 +333,3 @@ class _TransactionRow extends StatelessWidget {
   }
 }
 
-class _BottomNav extends StatelessWidget {
-  const _BottomNav();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        border: Border(top: BorderSide(color: AppColors.border)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: const [
-          _NavItem(label: 'Home', icon: Icons.home_outlined),
-          _NavItem(label: 'Calendar', icon: Icons.calendar_today, active: true),
-          _NavItem(label: 'Analysis', icon: Icons.bar_chart_outlined),
-          _NavItem(label: 'Profile', icon: Icons.person_outline),
-        ],
-      ),
-    );
-  }
-}
-
-class _NavItem extends StatelessWidget {
-  const _NavItem({
-    required this.label,
-    required this.icon,
-    this.active = false,
-  });
-
-  final String label;
-  final IconData icon;
-  final bool active;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = active ? AppColors.primaryBlue : AppColors.textMuted;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, color: color, size: 20),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: Theme.of(context)
-              .textTheme
-              .bodySmall
-              ?.copyWith(color: color, fontWeight: FontWeight.w600),
-        ),
-      ],
-    );
-  }
-}

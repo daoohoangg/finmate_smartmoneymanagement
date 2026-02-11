@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../shared/widgets/app_text_field.dart';
 import '../../shared/widgets/primary_button.dart';
+import '../../shared/widgets/finmate_bottom_nav.dart';
 import 'services/profile_service.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
@@ -87,6 +88,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
+      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.settings),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),

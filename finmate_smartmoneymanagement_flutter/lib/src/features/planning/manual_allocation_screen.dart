@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../shared/widgets/finmate_bottom_nav.dart';
 import '../../shared/widgets/primary_button.dart';
 import 'fix_overspending_screen.dart';
 
@@ -14,21 +15,21 @@ class ManualAllocationScreen extends StatefulWidget {
 }
 
 class _ManualAllocationScreenState extends State<ManualAllocationScreen> {
-  static const double _recommendedBuffer = 20;
-  static const double _recommendedLife = 60;
-  static const double _recommendedGoals = 20;
+  static const double _recommendedNecessary = 60;
+  static const double _recommendedAccumulation = 20;
+  static const double _recommendedFlexibility = 20;
 
-  double _buffer = _recommendedBuffer;
-  double _life = 50;
-  double _goals = 30;
+  double _necessary = _recommendedNecessary;
+  double _accumulation = _recommendedAccumulation;
+  double _flexibility = _recommendedFlexibility;
 
-  double get _total => _buffer + _life + _goals;
+  double get _total => _necessary + _accumulation + _flexibility;
 
   void _resetToRecommended() {
     setState(() {
-      _buffer = _recommendedBuffer;
-      _life = _recommendedLife;
-      _goals = _recommendedGoals;
+      _necessary = _recommendedNecessary;
+      _accumulation = _recommendedAccumulation;
+      _flexibility = _recommendedFlexibility;
     });
   }
 
@@ -47,6 +48,7 @@ class _ManualAllocationScreenState extends State<ManualAllocationScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
+      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.overview),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -96,9 +98,9 @@ class _ManualAllocationScreenState extends State<ManualAllocationScreen> {
                   ),
                   const SizedBox(height: 16),
                   _AllocationPreview(
-                    buffer: _buffer,
-                    life: _life,
-                    goals: _goals,
+                    necessary: _necessary,
+                    accumulation: _accumulation,
+                    flexibility: _flexibility,
                   ),
                   const SizedBox(height: 20),
                   Text(
@@ -109,32 +111,32 @@ class _ManualAllocationScreenState extends State<ManualAllocationScreen> {
                         ?.copyWith(fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 12),
-  _SliderCard(
-    title: 'Buffer',
-    subtitle: 'Safety net for unexpected costs',
-    icon: Icons.shield_outlined,
-    color: const Color(0xFFF59E0B),
-    value: _buffer,
-    onChanged: (value) => setState(() => _buffer = value),
-  ),
+                  _SliderCard(
+                    title: 'Necessary',
+                    subtitle: 'Essential living expenses',
+                    icon: Icons.home_outlined,
+                    color: const Color(0xFF2CB67D),
+                    value: _necessary,
+                    onChanged: (value) => setState(() => _necessary = value),
+                  ),
                   const SizedBox(height: 12),
-  _SliderCard(
-    title: 'Life',
-    subtitle: 'Daily expenses and lifestyle',
-    icon: Icons.favorite_border,
-    color: const Color(0xFF2CB67D),
-    value: _life,
-    onChanged: (value) => setState(() => _life = value),
-  ),
+                  _SliderCard(
+                    title: 'Accumulation',
+                    subtitle: 'Savings and long-term goals',
+                    icon: Icons.savings_outlined,
+                    color: const Color(0xFF6366F1),
+                    value: _accumulation,
+                    onChanged: (value) => setState(() => _accumulation = value),
+                  ),
                   const SizedBox(height: 12),
-  _SliderCard(
-    title: 'Goals',
-    subtitle: 'Savings and long-term investments',
-    icon: Icons.rocket_launch_outlined,
-    color: const Color(0xFF6366F1),
-    value: _goals,
-    onChanged: (value) => setState(() => _goals = value),
-  ),
+                  _SliderCard(
+                    title: 'Flexibility',
+                    subtitle: 'Variable spending and short-term buffer',
+                    icon: Icons.auto_awesome_outlined,
+                    color: const Color(0xFFF59E0B),
+                    value: _flexibility,
+                    onChanged: (value) => setState(() => _flexibility = value),
+                  ),
                   const SizedBox(height: 16),
                   _HelpCard(),
                   const SizedBox(height: 24),
@@ -169,15 +171,15 @@ class _ManualAllocationScreenState extends State<ManualAllocationScreen> {
 }
 
 class _AllocationPreview extends StatelessWidget {
-  const _AllocationPreview({
-    required this.buffer,
-    required this.life,
-    required this.goals,
+  _AllocationPreview({
+    required this.necessary,
+    required this.accumulation,
+    required this.flexibility,
   });
 
-  final double buffer;
-  final double life;
-  final double goals;
+  final double necessary;
+  final double accumulation;
+  final double flexibility;
 
   @override
   Widget build(BuildContext context) {
@@ -202,7 +204,7 @@ class _AllocationPreview extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                '${buffer.round()} / ${life.round()} / ${goals.round()}',
+                '${necessary.round()} / ${accumulation.round()} / ${flexibility.round()}',
                 style: Theme.of(context)
                     .textTheme
                     .bodySmall
@@ -213,21 +215,13 @@ class _AllocationPreview extends StatelessWidget {
           const SizedBox(height: 10),
           LayoutBuilder(
             builder: (context, constraints) {
-              final total = buffer + life + goals;
+              final total = necessary + accumulation + flexibility;
               double safeWidth(double value) =>
                   total == 0 ? 0 : constraints.maxWidth * (value / total);
               return Row(
                 children: [
                   Container(
-                    width: safeWidth(buffer),
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF59E0B),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  Container(
-                    width: safeWidth(life),
+                    width: safeWidth(necessary),
                     height: 8,
                     decoration: BoxDecoration(
                       color: const Color(0xFF2CB67D),
@@ -235,10 +229,18 @@ class _AllocationPreview extends StatelessWidget {
                     ),
                   ),
                   Container(
-                    width: safeWidth(goals),
+                    width: safeWidth(accumulation),
                     height: 8,
                     decoration: BoxDecoration(
                       color: const Color(0xFF6366F1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  Container(
+                    width: safeWidth(flexibility),
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF59E0B),
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
@@ -249,11 +251,11 @@ class _AllocationPreview extends StatelessWidget {
           const SizedBox(height: 8),
           Row(
             children: [
-              _LegendDot(label: 'Buffer', color: const Color(0xFFF59E0B)),
+              _LegendDot(label: 'Necessary', color: const Color(0xFF2CB67D)),
               const SizedBox(width: 12),
-              _LegendDot(label: 'Life', color: const Color(0xFF2CB67D)),
+              _LegendDot(label: 'Accumulation', color: const Color(0xFF6366F1)),
               const SizedBox(width: 12),
-              _LegendDot(label: 'Goals', color: const Color(0xFF6366F1)),
+              _LegendDot(label: 'Flexibility', color: const Color(0xFFF59E0B)),
             ],
           ),
         ],

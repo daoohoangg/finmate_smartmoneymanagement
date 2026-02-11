@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../shared/widgets/primary_button.dart';
+import '../../shared/widgets/finmate_bottom_nav.dart';
 import 'recurring_custom_screen.dart';
 
 class RecurringSetupScreen extends StatefulWidget {
@@ -32,6 +33,7 @@ class _RecurringSetupScreenState extends State<RecurringSetupScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
+      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.overview),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),

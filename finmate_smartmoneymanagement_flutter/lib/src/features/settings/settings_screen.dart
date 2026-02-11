@@ -35,6 +35,7 @@ import '../transactions/add_transaction_screen.dart';
 import '../transactions/edit_transaction_screen.dart';
 import '../transactions/transactions_list_screen.dart';
 import '../../shared/widgets/section_label.dart';
+import '../../shared/widgets/finmate_bottom_nav.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -312,45 +313,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        backgroundColor: AppColors.primaryRed,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 8,
-        child: SizedBox(
-          height: 68,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: const [
-              _BottomNavItem(
-                icon: Icons.home_filled,
-                label: 'Home',
-                active: false,
-              ),
-              _BottomNavItem(
-                icon: Icons.account_balance_wallet,
-                label: 'Wallet',
-                active: false,
-              ),
-              SizedBox(width: 48),
-              _BottomNavItem(
-                icon: Icons.bar_chart,
-                label: 'Stats',
-                active: false,
-              ),
-              _BottomNavItem(
-                icon: Icons.settings,
-                label: 'Settings',
-                active: true,
-              ),
-            ],
-          ),
-        ),
-      ),
+      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.settings),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -1079,33 +1042,3 @@ class _SettingsItem extends StatelessWidget {
   }
 }
 
-class _BottomNavItem extends StatelessWidget {
-  const _BottomNavItem({
-    required this.icon,
-    required this.label,
-    required this.active,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool active;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = active ? AppColors.primaryRed : AppColors.textMuted;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, color: color, size: 22),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: Theme.of(context)
-              .textTheme
-              .bodySmall
-              ?.copyWith(color: color, fontWeight: FontWeight.w600),
-        ),
-      ],
-    );
-  }
-}

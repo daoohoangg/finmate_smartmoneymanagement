@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/storage/session_storage.dart';
 import '../../shared/widgets/app_text_field.dart';
 import '../../shared/widgets/primary_button.dart';
+import '../onboarding/onboarding_flow_screen.dart';
 import 'services/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -60,8 +62,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
         fullName: fullName,
       );
       if (!mounted) return;
-      _showSnack('Account created successfully! Please login.');
-      Navigator.pop(context); // Go back to login screen
+      await SessionStorage.instance.setSurveyCompleted(false);
+      _showSnack('Account created successfully! Please complete the survey.');
+      Navigator.pushReplacementNamed(
+        context,
+        OnboardingFlowScreen.routeName,
+      );
     } catch (e) {
       _showSnack(e.toString());
     } finally {

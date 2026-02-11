@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../shared/widgets/finmate_bottom_nav.dart';
 
 class BudgetStatusEmptyScreen extends StatelessWidget {
   const BudgetStatusEmptyScreen({super.key});
@@ -24,7 +25,7 @@ class BudgetStatusEmptyScreen extends StatelessWidget {
           ),
         ],
       ),
-      bottomNavigationBar: _BottomNav(activeIndex: 1),
+      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.overview),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -103,47 +104,3 @@ class BudgetStatusEmptyScreen extends StatelessWidget {
   }
 }
 
-class _BottomNav extends StatelessWidget {
-  const _BottomNav({required this.activeIndex});
-
-  final int activeIndex;
-
-  @override
-  Widget build(BuildContext context) {
-    final labels = ['Overview', 'Budget', 'History', 'Profile'];
-    final icons = [
-      Icons.dashboard_outlined,
-      Icons.account_balance_wallet_outlined,
-      Icons.receipt_long_outlined,
-      Icons.person_outline,
-    ];
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        border: Border(top: BorderSide(color: AppColors.border)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: List.generate(labels.length, (index) {
-          final isActive = activeIndex == index;
-          final color = isActive ? AppColors.primaryRed : AppColors.textMuted;
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icons[index], color: color, size: 20),
-              const SizedBox(height: 4),
-              Text(
-                labels[index],
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: color, fontWeight: FontWeight.w600),
-              ),
-            ],
-          );
-        }),
-      ),
-    );
-  }
-}

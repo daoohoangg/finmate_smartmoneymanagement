@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../shared/widgets/finmate_bottom_nav.dart';
 
 class AllocateFundsDoneScreen extends StatelessWidget {
   const AllocateFundsDoneScreen({super.key});
@@ -18,6 +19,7 @@ class AllocateFundsDoneScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
       ),
+      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.overview),
       body: SafeArea(
         child: Stack(
           children: [

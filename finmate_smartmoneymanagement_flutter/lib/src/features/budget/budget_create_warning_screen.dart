@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../shared/widgets/finmate_bottom_nav.dart';
 
 class BudgetCreateWarningScreen extends StatelessWidget {
   const BudgetCreateWarningScreen({super.key});
@@ -24,6 +25,7 @@ class BudgetCreateWarningScreen extends StatelessWidget {
           ),
         ],
       ),
+      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.overview),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),

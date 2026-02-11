@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../shared/widgets/finmate_bottom_nav.dart';
 
 class BudgetStatusTrackScreen extends StatelessWidget {
   const BudgetStatusTrackScreen({super.key});
@@ -24,7 +25,7 @@ class BudgetStatusTrackScreen extends StatelessWidget {
           ),
         ],
       ),
-      bottomNavigationBar: _BottomNav(activeIndex: 1),
+      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.overview),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -296,47 +297,3 @@ class _TipCard extends StatelessWidget {
   }
 }
 
-class _BottomNav extends StatelessWidget {
-  const _BottomNav({required this.activeIndex});
-
-  final int activeIndex;
-
-  @override
-  Widget build(BuildContext context) {
-    final labels = ['Home', 'Budget', 'Account', 'Settings'];
-    final icons = [
-      Icons.home_outlined,
-      Icons.account_balance_wallet_outlined,
-      Icons.account_circle_outlined,
-      Icons.settings_outlined,
-    ];
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        border: Border(top: BorderSide(color: AppColors.border)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: List.generate(labels.length, (index) {
-          final isActive = activeIndex == index;
-          final color = isActive ? AppColors.primaryRed : AppColors.textMuted;
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icons[index], color: color, size: 20),
-              const SizedBox(height: 4),
-              Text(
-                labels[index],
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: color, fontWeight: FontWeight.w600),
-              ),
-            ],
-          );
-        }),
-      ),
-    );
-  }
-}

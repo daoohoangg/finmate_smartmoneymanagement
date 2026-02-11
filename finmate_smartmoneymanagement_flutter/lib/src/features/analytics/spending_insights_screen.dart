@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../shared/widgets/finmate_bottom_nav.dart';
 
 class SpendingInsightsScreen extends StatelessWidget {
   const SpendingInsightsScreen({super.key});
@@ -24,12 +25,7 @@ class SpendingInsightsScreen extends StatelessWidget {
           ),
         ],
       ),
-      bottomNavigationBar: const _BottomNav(),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.primaryBlue,
-        onPressed: () {},
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
+      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.stats),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -262,62 +258,3 @@ class _ActivityRow extends StatelessWidget {
   }
 }
 
-class _BottomNav extends StatelessWidget {
-  const _BottomNav();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        border: Border(top: BorderSide(color: AppColors.border)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: const [
-          _NavItem(label: 'Home', icon: Icons.home_outlined),
-          _NavItem(label: 'Insights', icon: Icons.insights, active: true),
-          _NavItem(label: '', icon: Icons.add_circle, active: true, primary: true),
-          _NavItem(label: 'Cards', icon: Icons.credit_card_outlined),
-          _NavItem(label: 'Profile', icon: Icons.person_outline),
-        ],
-      ),
-    );
-  }
-}
-
-class _NavItem extends StatelessWidget {
-  const _NavItem({
-    required this.label,
-    required this.icon,
-    this.active = false,
-    this.primary = false,
-  });
-
-  final String label;
-  final IconData icon;
-  final bool active;
-  final bool primary;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = active ? AppColors.primaryBlue : AppColors.textMuted;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, color: primary ? AppColors.primaryBlue : color, size: primary ? 30 : 20),
-        if (label.isNotEmpty) ...[
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: color, fontWeight: FontWeight.w600),
-          ),
-        ],
-      ],
-    );
-  }
-}

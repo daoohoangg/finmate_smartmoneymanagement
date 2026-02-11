@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../shared/widgets/finmate_bottom_nav.dart';
 
 class BudgetCreateSuccessScreen extends StatelessWidget {
   const BudgetCreateSuccessScreen({super.key});
@@ -24,6 +25,7 @@ class BudgetCreateSuccessScreen extends StatelessWidget {
           ),
         ],
       ),
+      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.overview),
       body: SafeArea(
         child: Stack(
           children: [

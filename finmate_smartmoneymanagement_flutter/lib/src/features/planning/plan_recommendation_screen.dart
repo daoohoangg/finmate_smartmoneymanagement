@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../shared/widgets/primary_button.dart';
+import '../../shared/widgets/finmate_bottom_nav.dart';
 import 'fix_overspending_screen.dart';
 import 'manual_allocation_screen.dart';
 
@@ -9,6 +10,9 @@ class PlanRecommendationScreen extends StatelessWidget {
   const PlanRecommendationScreen({super.key});
 
   static const String routeName = '/plan-recommendation';
+  static const int _necessaryPercent = 60;
+  static const int _accumulationPercent = 20;
+  static const int _flexibilityPercent = 20;
 
   @override
   Widget build(BuildContext context) {
@@ -20,6 +24,7 @@ class PlanRecommendationScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
       ),
+      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.overview),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -50,10 +55,10 @@ class PlanRecommendationScreen extends StatelessWidget {
                   Wrap(
                     spacing: 12,
                     runSpacing: 12,
-                    children: const [
-                      _PlanPill(label: 'Buffer', value: '20%'),
-                      _PlanPill(label: 'Life', value: '60%'),
-                      _PlanPill(label: 'Goals', value: '20%'),
+                    children: [
+                      _PlanPill(label: 'Necessary', value: '${_necessaryPercent}%'),
+                      _PlanPill(label: 'Accumulation', value: '${_accumulationPercent}%'),
+                      _PlanPill(label: 'Flexibility', value: '${_flexibilityPercent}%'),
                     ],
                   ),
                   const SizedBox(height: 20),
@@ -67,9 +72,18 @@ class PlanRecommendationScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   _AllocationBar(
                     segments: const [
-                      _AllocationSegment(color: Color(0xFFF59E0B), percent: 20),
-                      _AllocationSegment(color: Color(0xFF2CB67D), percent: 60),
-                      _AllocationSegment(color: Color(0xFF6366F1), percent: 20),
+                      _AllocationSegment(
+                        color: Color(0xFF2CB67D),
+                        percent: _necessaryPercent,
+                      ),
+                      _AllocationSegment(
+                        color: Color(0xFF6366F1),
+                        percent: _accumulationPercent,
+                      ),
+                      _AllocationSegment(
+                        color: Color(0xFFF59E0B),
+                        percent: _flexibilityPercent,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 18),

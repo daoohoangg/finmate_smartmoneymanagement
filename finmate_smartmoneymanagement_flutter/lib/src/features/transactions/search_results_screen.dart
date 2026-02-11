@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../shared/widgets/finmate_bottom_nav.dart';
 
 class SearchResultsScreen extends StatelessWidget {
   const SearchResultsScreen({super.key});
@@ -18,43 +19,38 @@ class SearchResultsScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
       ),
+      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.history),
       body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 420),
-                  child: Column(
-                    children: [
-                      _SearchBar(),
-                      const SizedBox(height: 30),
-                      _EmptyState(),
-                      const SizedBox(height: 20),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 46,
-                        child: ElevatedButton(
-                          onPressed: () {},
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryRed,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                          child: const Text('Clear All Filters'),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Column(
+                children: [
+                  _SearchBar(),
+                  const SizedBox(height: 30),
+                  _EmptyState(),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 46,
+                    child: ElevatedButton(
+                      onPressed: () {},
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryRed,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                    ],
+                      child: const Text('Clear All Filters'),
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
-            const Spacer(),
-            _BottomNav(),
-          ],
+          ),
         ),
       ),
     );
@@ -145,57 +141,3 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-class _BottomNav extends StatelessWidget {
-  const _BottomNav();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        border: Border(top: BorderSide(color: AppColors.border)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: const [
-          _NavItem(label: 'Home', icon: Icons.home_outlined),
-          _NavItem(label: 'Analytics', icon: Icons.bar_chart_outlined),
-          _NavItem(label: 'Search', icon: Icons.search, active: true),
-          _NavItem(label: 'Profile', icon: Icons.person_outline),
-        ],
-      ),
-    );
-  }
-}
-
-class _NavItem extends StatelessWidget {
-  const _NavItem({
-    required this.label,
-    required this.icon,
-    this.active = false,
-  });
-
-  final String label;
-  final IconData icon;
-  final bool active;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = active ? AppColors.primaryRed : AppColors.textMuted;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, color: color, size: 20),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: Theme.of(context)
-              .textTheme
-              .bodySmall
-              ?.copyWith(color: color, fontWeight: FontWeight.w600),
-        ),
-      ],
-    );
-  }
-}
