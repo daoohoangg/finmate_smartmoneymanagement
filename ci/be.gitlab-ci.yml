@@ -1,3 +1,21 @@
+test_be:
+  stage: test
+  image: eclipse-temurin:17-jdk-jammy
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - finmate_smartmoneymanagement_be/**/*
+        - deploy/helm/**/*
+        - .gitlab-ci.yml
+        - ci/be.gitlab-ci.yml
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+      when: always
+    - when: never
+  script:
+    - cd finmate_smartmoneymanagement_be
+    - chmod +x ./gradlew
+    - ./gradlew --no-daemon test
+
 deploy_be:
   stage: deploy
   image: mcr.microsoft.com/azure-cli:2.60.0
