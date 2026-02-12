@@ -30,15 +30,10 @@ deploy_flutter:
     - az aks install-cli
     - |
       if [ -n "$AZURE_CREDENTIALS" ]; then
-        eval "$(python3 - <<'PY'
-import json, os
-creds = json.loads(os.environ["AZURE_CREDENTIALS"])
-print(f'export AZURE_CLIENT_ID="{creds.get("clientId", "")}"')
-print(f'export AZURE_CLIENT_SECRET="{creds.get("clientSecret", "")}"')
-print(f'export AZURE_TENANT_ID="{creds.get("tenantId", "")}"')
-print(f'export AZURE_SUBSCRIPTION_ID="{creds.get("subscriptionId", "")}"')
-PY
-)"
+        export AZURE_CLIENT_ID="$(python3 -c 'import json,os;print(json.loads(os.environ["AZURE_CREDENTIALS"]).get("clientId",""))')"
+        export AZURE_CLIENT_SECRET="$(python3 -c 'import json,os;print(json.loads(os.environ["AZURE_CREDENTIALS"]).get("clientSecret",""))')"
+        export AZURE_TENANT_ID="$(python3 -c 'import json,os;print(json.loads(os.environ["AZURE_CREDENTIALS"]).get("tenantId",""))')"
+        export AZURE_SUBSCRIPTION_ID="$(python3 -c 'import json,os;print(json.loads(os.environ["AZURE_CREDENTIALS"]).get("subscriptionId",""))')"
       fi
   script:
     - az login --service-principal -u "$AZURE_CLIENT_ID" -p "$AZURE_CLIENT_SECRET" --tenant "$AZURE_TENANT_ID"
