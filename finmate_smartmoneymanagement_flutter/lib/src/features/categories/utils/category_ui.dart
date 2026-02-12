@@ -19,6 +19,11 @@ class CategoryUi {
     'local_grocery_store_outlined': Icons.local_grocery_store_outlined,
   };
 
+  static final Map<int, IconData> _codepointMap = {
+    for (final icon in _iconMap.values) icon.codePoint: icon,
+    _fallbackIcon.codePoint: _fallbackIcon,
+  };
+
   static IconData iconFromString(String? value) {
     if (value == null || value.trim().isEmpty) return _fallbackIcon;
     var raw = value.trim();
@@ -31,12 +36,12 @@ class CategoryUi {
 
     final parsedDecimal = int.tryParse(raw);
     if (parsedDecimal != null) {
-      return IconData(parsedDecimal, fontFamily: 'MaterialIcons');
+      return _codepointMap[parsedDecimal] ?? _fallbackIcon;
     }
 
     final parsedHex = _tryParseHex(raw);
     if (parsedHex != null) {
-      return IconData(parsedHex, fontFamily: 'MaterialIcons');
+      return _codepointMap[parsedHex] ?? _fallbackIcon;
     }
 
     return _fallbackIcon;
