@@ -1,11 +1,11 @@
 image:
   api:
     repository: finmate.azurecr.io/finmate-be
-    tag: "latest"
+    tag: ""
     pullPolicy: IfNotPresent
   web:
     repository: finmate.azurecr.io/finmate-web
-    tag: "latest"
+    tag: ""
     pullPolicy: IfNotPresent
 
 replicaCount:
