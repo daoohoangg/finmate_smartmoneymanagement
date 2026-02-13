@@ -19,7 +19,7 @@ test_flutter:
 
 deploy_flutter:
   stage: deploy
-  image: mcr.microsoft.com/azure-cli:2.60.0
+  image: mcr.microsoft.com/azure-cli:latest
   services:
     - name: docker:24.0.7-dind
       command: ["--tls=false"]
