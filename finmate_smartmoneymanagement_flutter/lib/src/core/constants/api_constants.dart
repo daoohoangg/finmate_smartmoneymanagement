@@ -11,7 +11,11 @@ class ApiConstants {
       return configured;
     }
     if (kIsWeb) {
-      return 'http://localhost:8080';
+      final host = Uri.base.host.toLowerCase();
+      if (host == 'localhost' || host == '127.0.0.1' || host == '::1') {
+        return 'http://localhost:8080';
+      }
+      return Uri.base.origin;
     }
     if (isAndroid) {
       return 'http://10.0.2.2:8080';

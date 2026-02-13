@@ -120,6 +120,9 @@ deploy_flutter:
       helm upgrade --install "$RELEASE_NAME" deploy/helm/finmate \
         --namespace "$NAMESPACE" \
         --create-namespace \
+        --atomic \
+        --wait \
+        --timeout 10m \
         --reuse-values \
         --set image.web.repository="$ACR_LOGIN_SERVER/finmate-web" \
         --set image.web.tag="${IMAGE_TAG}" \
@@ -128,3 +131,35 @@ deploy_flutter:
         --set-string api.secret.data.CLOUD_API_SECRET="$CLOUD_API_SECRET" \
         --set-string api.secret.data.JWT_SECRET="$JWT_SECRET" \
         --set-string api.secret.data.GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID"
+    - |
+      WEB_DEPLOYMENT="$(kubectl get deployment -n "$NAMESPACE" \
+        -l "app.kubernetes.io/instance=$RELEASE_NAME,app.kubernetes.io/component=web" \
+        -o jsonpath='{.items[0].metadata.name}')"
+      if [ -z "$WEB_DEPLOYMENT" ]; then
+        echo "Unable to find web deployment for release $RELEASE_NAME in namespace $NAMESPACE."
+        kubectl get deployment -n "$NAMESPACE"
+        exit 1
+      fi
+      kubectl rollout status "deployment/$WEB_DEPLOYMENT" -n "$NAMESPACE" --timeout=5m
+    - |
+      WEB_SERVICE="$(kubectl get svc -n "$NAMESPACE" \
+        -l "app.kubernetes.io/instance=$RELEASE_NAME,app.kubernetes.io/component=web" \
+        -o jsonpath='{.items[0].metadata.name}')"
+      if [ -z "$WEB_SERVICE" ]; then
+        echo "Unable to find web service for release $RELEASE_NAME in namespace $NAMESPACE."
+        kubectl get svc -n "$NAMESPACE"
+        exit 1
+      fi
+      for i in $(seq 1 30); do
+        WEB_ENDPOINT="$(kubectl get svc "$WEB_SERVICE" -n "$NAMESPACE" \
+          -o jsonpath='{.status.loadBalancer.ingress[0].ip}{.status.loadBalancer.ingress[0].hostname}')"
+        if [ -n "$WEB_ENDPOINT" ]; then
+          echo "Flutter web URL: http://$WEB_ENDPOINT"
+          exit 0
+        fi
+        echo "Waiting for external endpoint for service $WEB_SERVICE ($i/30)..."
+        sleep 10
+      done
+      echo "LoadBalancer endpoint was not assigned in time."
+      kubectl get svc "$WEB_SERVICE" -n "$NAMESPACE" -o wide
+      exit 1
