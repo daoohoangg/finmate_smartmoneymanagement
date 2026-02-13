@@ -47,11 +47,11 @@ deploy_flutter:
       set -e
       if command -v apt-get >/dev/null 2>&1; then
         apt-get update -y
-        apt-get install -y curl ca-certificates docker.io python3 openssl
+        apt-get install -y curl ca-certificates docker.io python3 openssl gawk git
       elif command -v tdnf >/dev/null 2>&1; then
-        tdnf install -y curl ca-certificates docker-cli tar gzip python3 openssl
+        tdnf install -y curl ca-certificates docker-cli tar gzip python3 openssl gawk git
       elif command -v apk >/dev/null 2>&1; then
-        apk add --no-cache curl ca-certificates docker-cli python3 tar gzip openssl
+        apk add --no-cache curl ca-certificates docker-cli python3 tar gzip openssl gawk git
       fi
 
       download() {
@@ -79,7 +79,7 @@ deploy_flutter:
       if ! command -v helm >/dev/null 2>&1; then
         download "https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3" /tmp/get-helm-3
         chmod +x /tmp/get-helm-3
-        if ! command -v openssl >/dev/null 2>&1; then
+        if ! command -v openssl >/dev/null 2>&1 || ! command -v awk >/dev/null 2>&1; then
           VERIFY_CHECKSUM=false /tmp/get-helm-3
         else
           /tmp/get-helm-3
