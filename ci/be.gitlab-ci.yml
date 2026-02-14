@@ -123,8 +123,58 @@ deploy_be:
         helm history "$RELEASE_NAME" -n "$NAMESPACE" || true
         helm status "$RELEASE_NAME" -n "$NAMESPACE" || true
         kubectl get all -n "$NAMESPACE" || true
+        kubectl describe pods -n "$NAMESPACE" || true
         kubectl get events -n "$NAMESPACE" --sort-by=.metadata.creationTimestamp | tail -n 100 || true
       }
+
+      ensure_acr_pull_access() {
+        echo "Checking AKS pull access to ACR $ACR_RESOURCE_NAME..."
+        if az aks check-acr --resource-group "$AKS_RESOURCE_GROUP" --name "$AKS_CLUSTER_NAME" --acr "$ACR_RESOURCE_NAME" --output none >/dev/null 2>&1; then
+          echo "AKS pull access to ACR is OK."
+          return 0
+        fi
+
+        echo "AKS pull access check failed. Attempting AcrPull assignment for kubelet identity..."
+        KUBELET_OBJECT_ID="$(az aks show --resource-group "$AKS_RESOURCE_GROUP" --name "$AKS_CLUSTER_NAME" --query identityProfile.kubeletidentity.objectId -o tsv 2>/dev/null || true)"
+        ACR_ID="$(az acr show --name "$ACR_RESOURCE_NAME" --query id -o tsv 2>/dev/null || true)"
+
+        if [ -n "$KUBELET_OBJECT_ID" ] && [ -n "$ACR_ID" ]; then
+          az role assignment create \
+            --assignee-object-id "$KUBELET_OBJECT_ID" \
+            --assignee-principal-type ServicePrincipal \
+            --role AcrPull \
+            --scope "$ACR_ID" >/dev/null 2>&1 || true
+          echo "Waiting for role propagation..."
+          sleep 30
+        else
+          echo "Unable to resolve kubelet identity or ACR resource id for auto-fix."
+        fi
+
+        if az aks check-acr --resource-group "$AKS_RESOURCE_GROUP" --name "$AKS_CLUSTER_NAME" --acr "$ACR_RESOURCE_NAME" --output none >/dev/null 2>&1; then
+          echo "AKS pull access to ACR verified after role assignment."
+          return 0
+        fi
+
+        echo "AKS still cannot pull from ACR."
+        echo "Manual fix: az aks update --resource-group \"$AKS_RESOURCE_GROUP\" --name \"$AKS_CLUSTER_NAME\" --attach-acr \"$ACR_RESOURCE_NAME\""
+        exit 1
+      }
+
+      ensure_acr_image_exists() {
+        repo="$1"
+        tag="$2"
+        if [ -z "$tag" ]; then
+          echo "Missing image tag for repository $repo."
+          exit 1
+        fi
+        if ! az acr repository show --name "$ACR_RESOURCE_NAME" --image "${repo}:${tag}" --output none >/dev/null 2>&1; then
+          echo "Image not found in ACR: $ACR_LOGIN_SERVER/$repo:$tag"
+          exit 1
+        fi
+      }
+
+      ensure_acr_pull_access
+      ensure_acr_image_exists "finmate-be" "$IMAGE_TAG"
 
       if helm status "$RELEASE_NAME" -n "$NAMESPACE" >/dev/null 2>&1; then
         echo "Updating existing release $RELEASE_NAME in namespace $NAMESPACE."
@@ -152,6 +202,7 @@ deploy_be:
           echo "Set WEB_IMAGE_TAG to an existing finmate-web image tag, or run deploy_flutter first."
           exit 1
         fi
+        ensure_acr_image_exists "finmate-web" "$WEB_IMAGE_TAG"
         if ! helm upgrade --install "$RELEASE_NAME" deploy/helm/finmate \
           --namespace "$NAMESPACE" \
           --create-namespace \
