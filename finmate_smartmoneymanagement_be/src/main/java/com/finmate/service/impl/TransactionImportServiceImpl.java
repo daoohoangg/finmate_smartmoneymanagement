@@ -6,6 +6,7 @@ import com.finmate.dto.response.TransactionImportPreviewResponse;
 import com.finmate.dto.response.TransactionImportPreviewRow;
 import com.finmate.dto.response.TransactionImportResultResponse;
 import com.finmate.entities.Category;
+import com.finmate.enums.CategoryType;
 import com.finmate.enums.TransactionType;
 import com.finmate.repository.CategoryRepository;
 import com.finmate.repository.WalletRepository;
@@ -112,7 +113,7 @@ public class TransactionImportServiceImpl implements TransactionImportService {
 
         String note = buildNote(merchantRaw, noteRaw);
 
-        Category category = resolveCategory(userId, categoryRaw, note);
+        Category category = resolveCategory(userId, type, categoryRaw, note);
 
         return new TransactionImportPreviewRow(
                 date,
@@ -135,18 +136,54 @@ public class TransactionImportServiceImpl implements TransactionImportService {
         return merchant + " - " + note;
     }
 
-    private Category resolveCategory(UUID userId, String categoryRaw, String note) {
+    private Category resolveCategory(UUID userId, TransactionType type, String categoryRaw, String note) {
         if (categoryRaw != null && !categoryRaw.isBlank()) {
             List<Category> userCategories = categoryRepository.findByUserIdAndNameIgnoreCase(userId, categoryRaw.trim());
-            if (!userCategories.isEmpty()) {
-                return userCategories.get(0);
+            Category matchedUserCategory = pickPreferredCategory(userCategories, type);
+            if (matchedUserCategory != null) {
+                return matchedUserCategory;
             }
             List<Category> systemCategories = categoryRepository.findByUserIdIsNullAndNameIgnoreCase(categoryRaw.trim());
-            if (!systemCategories.isEmpty()) {
-                return systemCategories.get(0);
+            Category matchedSystemCategory = pickPreferredCategory(systemCategories, type);
+            if (matchedSystemCategory != null) {
+                return matchedSystemCategory;
             }
         }
-        return categoryRuleService.suggestCategory(userId, note);
+        Category suggested = categoryRuleService.suggestCategory(userId, note);
+        return pickPreferredCategory(suggested != null ? List.of(suggested) : Collections.emptyList(), type);
+    }
+
+    private Category pickPreferredCategory(List<Category> categories, TransactionType type) {
+        if (categories == null || categories.isEmpty()) {
+            return null;
+        }
+        if (type == TransactionType.EXPENSE) {
+            for (Category category : categories) {
+                if (category == null) {
+                    continue;
+                }
+                if (category.getType() == CategoryType.EXPENSE
+                        && category.getParent() != null
+                        && !categoryRepository.existsByParentId(category.getId())) {
+                    return category;
+                }
+            }
+            for (Category category : categories) {
+                if (category != null && category.getType() == CategoryType.EXPENSE) {
+                    return category;
+                }
+            }
+            return null;
+        }
+        if (type == TransactionType.INCOME) {
+            for (Category category : categories) {
+                if (category != null && category.getType() == CategoryType.INCOME) {
+                    return category;
+                }
+            }
+            return null;
+        }
+        return categories.stream().filter(c -> c != null).findFirst().orElse(null);
     }
 
     private TransactionType resolveType(TransactionImportMappingRequest mapping, String typeRaw, BigDecimal amount) {

@@ -20,16 +20,19 @@ class _CreateCategoryScreenState extends State<CreateCategoryScreen> {
   static const List<_ParentTemplate> _requiredParents = [
     _ParentTemplate(
       name: 'Necessary',
+      group: CategoryGroup.necessary,
       icon: Icons.home_outlined,
       color: Color(0xFFF59E0B),
     ),
     _ParentTemplate(
       name: 'Accumulation',
+      group: CategoryGroup.accumulation,
       icon: Icons.savings_outlined,
       color: Color(0xFF2CB67D),
     ),
     _ParentTemplate(
       name: 'Flexibility',
+      group: CategoryGroup.flexibility,
       icon: Icons.auto_awesome_outlined,
       color: Color(0xFF6366F1),
     ),
@@ -101,6 +104,7 @@ class _CreateCategoryScreenState extends State<CreateCategoryScreen> {
         category = await _service.createCategory(
           name: template.name,
           type: _type,
+          group: template.group,
           icon: CategoryUi.iconToString(template.icon),
           color: CategoryUi.colorToString(template.color),
         );
@@ -284,11 +288,13 @@ class _CreateCategoryScreenState extends State<CreateCategoryScreen> {
 class _ParentTemplate {
   const _ParentTemplate({
     required this.name,
+    required this.group,
     required this.icon,
     required this.color,
   });
 
   final String name;
+  final CategoryGroup group;
   final IconData icon;
   final Color color;
 }

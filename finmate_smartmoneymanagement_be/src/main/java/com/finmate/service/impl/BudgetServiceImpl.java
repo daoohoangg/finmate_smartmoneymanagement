@@ -7,6 +7,7 @@ import com.finmate.entities.Budget;
 import com.finmate.entities.Category;
 import com.finmate.entities.Transaction;
 import com.finmate.entities.User;
+import com.finmate.enums.CategoryType;
 import com.finmate.enums.TransactionType;
 import com.finmate.repository.BudgetRepository;
 import com.finmate.repository.CategoryRepository;
@@ -42,6 +43,7 @@ public class BudgetServiceImpl implements BudgetService {
 
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new RuntimeException("Category not found"));
+        validateBudgetCategory(userId, category);
 
         Budget budget = new Budget();
         budget.setUser(user);
@@ -75,6 +77,7 @@ public class BudgetServiceImpl implements BudgetService {
         if (request.getCategoryId() != null) {
             Category category = categoryRepository.findById(request.getCategoryId())
                     .orElseThrow(() -> new RuntimeException("Category not found"));
+            validateBudgetCategory(budget.getUser().getId(), category);
             budget.setCategory(category);
         }
 
@@ -177,5 +180,17 @@ public class BudgetServiceImpl implements BudgetService {
                 .filter(t -> t.getType() == TransactionType.EXPENSE)
                 .map(Transaction::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private void validateBudgetCategory(UUID userId, Category category) {
+        if (category.getUser() != null && !category.getUser().getId().equals(userId)) {
+            throw new RuntimeException("Category does not belong to user");
+        }
+        if (category.getType() != CategoryType.EXPENSE) {
+            throw new RuntimeException("Budget category must be an expense category");
+        }
+        if (category.getParent() == null || categoryRepository.existsByParentId(category.getId())) {
+            throw new RuntimeException("Please select a subcategory for budget");
+        }
     }
 }

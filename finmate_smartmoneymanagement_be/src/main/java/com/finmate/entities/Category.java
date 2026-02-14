@@ -1,5 +1,6 @@
 package com.finmate.entities;
 
+import com.finmate.enums.CategoryGroup;
 import com.finmate.enums.CategoryType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -28,6 +29,13 @@ public class Category {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private CategoryType type;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "category_group", length = 20)
+    private CategoryGroup categoryGroup;
+
+    @Column(name = "is_primary")
+    private Boolean isPrimary = false;
 
     private String icon;
 

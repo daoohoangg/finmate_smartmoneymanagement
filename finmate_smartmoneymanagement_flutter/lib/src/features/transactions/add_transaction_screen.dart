@@ -109,9 +109,14 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         if (aOrder != bOrder) return aOrder.compareTo(bOrder);
         return a.name.toLowerCase().compareTo(b.name.toLowerCase());
       });
-      final categories = await _categorySvc.getCategories(
+      final loadedCategories = await _categorySvc.getCategories(
         type: _isExpense ? fm.CategoryType.expense : fm.CategoryType.income,
       );
+      final categories = _isExpense
+          ? loadedCategories
+              .where((category) => category.parentId != null && !category.isPrimary)
+              .toList()
+          : loadedCategories;
       if (!mounted) return;
       setState(() {
         _wallets = wallets;
@@ -168,9 +173,14 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       _errorMessage = null;
     });
     try {
-      final categories = await _categorySvc.getCategories(
+      final loadedCategories = await _categorySvc.getCategories(
         type: _isExpense ? fm.CategoryType.expense : fm.CategoryType.income,
       );
+      final categories = _isExpense
+          ? loadedCategories
+              .where((category) => category.parentId != null && !category.isPrimary)
+              .toList()
+          : loadedCategories;
       if (!mounted) return;
       setState(() {
         _categories = categories;

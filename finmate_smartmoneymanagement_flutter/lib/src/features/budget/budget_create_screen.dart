@@ -52,7 +52,9 @@ class _BudgetCreateScreenState extends State<BudgetCreateScreen> {
       _categoriesError = null;
     });
     try {
-      final categories = await _service.getCategories(type: CategoryType.expense);
+      final categories = (await _service.getCategories(type: CategoryType.expense))
+          .where((category) => category.parentId != null && !category.isPrimary)
+          .toList();
       if (!mounted) return;
       setState(() {
         _categories = categories;

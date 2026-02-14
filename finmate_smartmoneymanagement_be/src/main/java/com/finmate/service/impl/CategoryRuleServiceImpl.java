@@ -5,6 +5,7 @@ import com.finmate.dto.response.CategoryRuleResponse;
 import com.finmate.entities.Category;
 import com.finmate.entities.CategoryRule;
 import com.finmate.entities.User;
+import com.finmate.enums.CategoryType;
 import com.finmate.enums.RuleMatchType;
 import com.finmate.repository.CategoryRepository;
 import com.finmate.repository.CategoryRuleRepository;
@@ -37,6 +38,7 @@ public class CategoryRuleServiceImpl implements CategoryRuleService {
         if (category.getUser() != null && !category.getUser().getId().equals(userId)) {
             throw new RuntimeException("Category does not belong to user");
         }
+        validateRuleCategory(category);
 
         CategoryRule rule = new CategoryRule();
         rule.setUser(user);
@@ -75,6 +77,7 @@ public class CategoryRuleServiceImpl implements CategoryRuleService {
             if (category.getUser() != null && !category.getUser().getId().equals(rule.getUser().getId())) {
                 throw new RuntimeException("Category does not belong to user");
             }
+            validateRuleCategory(category);
             rule.setCategory(category);
         }
 
@@ -147,5 +150,14 @@ public class CategoryRuleServiceImpl implements CategoryRuleService {
                 rule.getMatchType(),
                 rule.getPriority(),
                 rule.getIsActive());
+    }
+
+    private void validateRuleCategory(Category category) {
+        if (category.getType() != CategoryType.EXPENSE) {
+            throw new RuntimeException("Category rule must target an EXPENSE category");
+        }
+        if (category.getParent() == null || categoryRepository.existsByParentId(category.getId())) {
+            throw new RuntimeException("Category rule must target an expense subcategory");
+        }
     }
 }

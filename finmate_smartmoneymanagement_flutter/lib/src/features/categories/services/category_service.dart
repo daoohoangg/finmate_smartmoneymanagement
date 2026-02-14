@@ -27,6 +27,7 @@ class CategoryService {
   Future<Category> createCategory({
     required String name,
     required CategoryType type,
+    CategoryGroup? group,
     String? icon,
     String? color,
     int? parentId,
@@ -35,6 +36,9 @@ class CategoryService {
       'name': name,
       'type': type.apiValue,
     };
+    if (group != null) {
+      body['group'] = group.apiValue;
+    }
     if (icon != null && icon.isNotEmpty) {
       body['icon'] = icon;
     }

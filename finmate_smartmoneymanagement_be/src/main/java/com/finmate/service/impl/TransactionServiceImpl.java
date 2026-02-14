@@ -3,6 +3,7 @@ package com.finmate.service.impl;
 import com.finmate.dto.request.TransactionRequest;
 import com.finmate.dto.response.TransactionResponse;
 import com.finmate.entities.*;
+import com.finmate.enums.CategoryType;
 import com.finmate.enums.TransactionType;
 import com.finmate.repository.*;
 import com.finmate.service.CategoryRuleService;
@@ -64,13 +65,12 @@ public class TransactionServiceImpl implements TransactionService {
         if (request.getCategoryId() != null) {
             category = categoryRepository.findById(request.getCategoryId())
                     .orElseThrow(() -> new RuntimeException("Category not found"));
-            if (category.getUser() != null && !category.getUser().getId().equals(userId)) {
-                throw new RuntimeException("Category does not belong to user");
-            }
+            validateCategoryForTransaction(userId, request.getType(), category);
             transaction.setCategory(category);
         } else if (request.getType() == TransactionType.EXPENSE && StringUtils.hasText(request.getNote())) {
             Category suggested = categoryRuleService.suggestCategory(userId, request.getNote());
             if (suggested != null) {
+                validateCategoryForTransaction(userId, request.getType(), suggested);
                 transaction.setCategory(suggested);
                 category = suggested;
             }
@@ -209,9 +209,7 @@ public class TransactionServiceImpl implements TransactionService {
         if (request.getCategoryId() != null) {
             category = categoryRepository.findById(request.getCategoryId())
                     .orElseThrow(() -> new RuntimeException("Category not found"));
-            if (category.getUser() != null && !category.getUser().getId().equals(existing.getUser().getId())) {
-                throw new RuntimeException("Category does not belong to user");
-            }
+            validateCategoryForTransaction(existing.getUser().getId(), request.getType(), category);
             existing.setCategory(category);
         } else {
             existing.setCategory(null);
@@ -258,6 +256,12 @@ public class TransactionServiceImpl implements TransactionService {
             if (category == null) {
                 throw new RuntimeException("Category is required for expense");
             }
+            if (category.getType() != CategoryType.EXPENSE) {
+                throw new RuntimeException("Category type must be EXPENSE for expense transaction");
+            }
+            if (category.getParent() == null || categoryRepository.existsByParentId(category.getId())) {
+                throw new RuntimeException("Please select an expense subcategory");
+            }
             ensureBudgetAvailable(transaction.getUser().getId(), category.getId(), request.getAmount(), excludeTransactionId);
             ensureSufficientBalance(wallet, request.getAmount());
             wallet.setBalance(wallet.getBalance().subtract(request.getAmount()));
@@ -303,6 +307,22 @@ public class TransactionServiceImpl implements TransactionService {
             investmentPlanRepository.save(investmentPlan);
         } else {
             throw new RuntimeException("Invalid transaction type or missing required fields");
+        }
+    }
+
+    private void validateCategoryForTransaction(UUID userId, TransactionType transactionType, Category category) {
+        if (category.getUser() != null && !category.getUser().getId().equals(userId)) {
+            throw new RuntimeException("Category does not belong to user");
+        }
+        if (transactionType == TransactionType.EXPENSE) {
+            if (category.getType() != CategoryType.EXPENSE) {
+                throw new RuntimeException("Category type must be EXPENSE for expense transaction");
+            }
+            if (category.getParent() == null || categoryRepository.existsByParentId(category.getId())) {
+                throw new RuntimeException("Please select an expense subcategory");
+            }
+        } else if (transactionType == TransactionType.INCOME && category.getType() != CategoryType.INCOME) {
+            throw new RuntimeException("Category type must be INCOME for income transaction");
         }
     }
 

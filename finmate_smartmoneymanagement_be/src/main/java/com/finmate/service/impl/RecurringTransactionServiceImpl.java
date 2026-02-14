@@ -6,6 +6,7 @@ import com.finmate.entities.Category;
 import com.finmate.entities.RecurringTransaction;
 import com.finmate.entities.User;
 import com.finmate.entities.Wallet;
+import com.finmate.enums.CategoryType;
 import com.finmate.enums.TransactionType;
 import com.finmate.repository.CategoryRepository;
 import com.finmate.repository.RecurringTransactionRepository;
@@ -52,6 +53,7 @@ public class RecurringTransactionServiceImpl implements RecurringTransactionServ
         if (category.getUser() != null && !category.getUser().getId().equals(userId)) {
             throw new RuntimeException("Category does not belong to user");
         }
+        validateRecurringCategory(request.getType(), category);
 
         if (request.getType() == TransactionType.TRANSFER) {
             throw new RuntimeException("Recurring transfers are not supported");
@@ -107,12 +109,16 @@ public class RecurringTransactionServiceImpl implements RecurringTransactionServ
             if (category.getUser() != null && !category.getUser().getId().equals(recurring.getUser().getId())) {
                 throw new RuntimeException("Category does not belong to user");
             }
+            validateRecurringCategory(
+                    request.getType() != null ? request.getType() : recurring.getType(),
+                    category);
             recurring.setCategory(category);
         }
         if (request.getType() != null) {
             if (request.getType() == TransactionType.TRANSFER) {
                 throw new RuntimeException("Recurring transfers are not supported");
             }
+            validateRecurringCategory(request.getType(), recurring.getCategory());
             recurring.setType(request.getType());
         }
         if (request.getName() != null) {
@@ -164,5 +170,21 @@ public class RecurringTransactionServiceImpl implements RecurringTransactionServ
                 recurring.getNextOccurrenceDate(),
                 recurring.getEndDate(),
                 recurring.getIsActive());
+    }
+
+    private void validateRecurringCategory(TransactionType transactionType, Category category) {
+        if (transactionType == null || category == null) {
+            return;
+        }
+        if (transactionType == TransactionType.EXPENSE) {
+            if (category.getType() != CategoryType.EXPENSE) {
+                throw new RuntimeException("Category type must be EXPENSE for recurring expense");
+            }
+            if (category.getParent() == null || categoryRepository.existsByParentId(category.getId())) {
+                throw new RuntimeException("Please select an expense subcategory");
+            }
+        } else if (transactionType == TransactionType.INCOME && category.getType() != CategoryType.INCOME) {
+            throw new RuntimeException("Category type must be INCOME for recurring income");
+        }
     }
 }
