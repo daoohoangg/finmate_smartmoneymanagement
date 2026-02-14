@@ -116,17 +116,58 @@ deploy_be:
       docker push "$ACR_LOGIN_SERVER/finmate-be:${IMAGE_TAG}"
     - az aks get-credentials --resource-group "$AKS_RESOURCE_GROUP" --name "$AKS_CLUSTER_NAME" --overwrite-existing
     - |
-      helm upgrade --install "$RELEASE_NAME" deploy/helm/finmate \
-        --namespace "$NAMESPACE" \
-        --create-namespace \
-        --atomic \
-        --wait \
-        --timeout 10m \
-        --reuse-values \
-        --set image.api.repository="$ACR_LOGIN_SERVER/finmate-be" \
-        --set image.api.tag="${IMAGE_TAG}" \
-        --set-string api.secret.data.DB_PASSWORD="$DB_PASSWORD" \
-        --set-string api.secret.data.CLOUD_API_KEY="$CLOUD_API_KEY" \
-        --set-string api.secret.data.CLOUD_API_SECRET="$CLOUD_API_SECRET" \
-        --set-string api.secret.data.JWT_SECRET="$JWT_SECRET" \
-        --set-string api.secret.data.GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID"
+      set -e
+
+      print_helm_failure_debug() {
+        echo "Helm upgrade failed. Collecting diagnostics..."
+        helm history "$RELEASE_NAME" -n "$NAMESPACE" || true
+        helm status "$RELEASE_NAME" -n "$NAMESPACE" || true
+        kubectl get all -n "$NAMESPACE" || true
+        kubectl get events -n "$NAMESPACE" --sort-by=.metadata.creationTimestamp | tail -n 100 || true
+      }
+
+      if helm status "$RELEASE_NAME" -n "$NAMESPACE" >/dev/null 2>&1; then
+        echo "Updating existing release $RELEASE_NAME in namespace $NAMESPACE."
+        if ! helm upgrade --install "$RELEASE_NAME" deploy/helm/finmate \
+          --namespace "$NAMESPACE" \
+          --create-namespace \
+          --atomic \
+          --wait \
+          --timeout 20m \
+          --reuse-values \
+          --set image.api.repository="$ACR_LOGIN_SERVER/finmate-be" \
+          --set image.api.tag="${IMAGE_TAG}" \
+          --set-string api.secret.data.DB_PASSWORD="$DB_PASSWORD" \
+          --set-string api.secret.data.CLOUD_API_KEY="$CLOUD_API_KEY" \
+          --set-string api.secret.data.CLOUD_API_SECRET="$CLOUD_API_SECRET" \
+          --set-string api.secret.data.JWT_SECRET="$JWT_SECRET" \
+          --set-string api.secret.data.GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID"; then
+          print_helm_failure_debug
+          exit 1
+        fi
+      else
+        echo "Release $RELEASE_NAME not found in namespace $NAMESPACE (initial install)."
+        if [ -z "$WEB_IMAGE_TAG" ]; then
+          echo "WEB_IMAGE_TAG is required for initial install because this chart deploys both api and web."
+          echo "Set WEB_IMAGE_TAG to an existing finmate-web image tag, or run deploy_flutter first."
+          exit 1
+        fi
+        if ! helm upgrade --install "$RELEASE_NAME" deploy/helm/finmate \
+          --namespace "$NAMESPACE" \
+          --create-namespace \
+          --atomic \
+          --wait \
+          --timeout 20m \
+          --set image.web.repository="$ACR_LOGIN_SERVER/finmate-web" \
+          --set image.web.tag="${WEB_IMAGE_TAG}" \
+          --set image.api.repository="$ACR_LOGIN_SERVER/finmate-be" \
+          --set image.api.tag="${IMAGE_TAG}" \
+          --set-string api.secret.data.DB_PASSWORD="$DB_PASSWORD" \
+          --set-string api.secret.data.CLOUD_API_KEY="$CLOUD_API_KEY" \
+          --set-string api.secret.data.CLOUD_API_SECRET="$CLOUD_API_SECRET" \
+          --set-string api.secret.data.JWT_SECRET="$JWT_SECRET" \
+          --set-string api.secret.data.GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID"; then
+          print_helm_failure_debug
+          exit 1
+        fi
+      fi
