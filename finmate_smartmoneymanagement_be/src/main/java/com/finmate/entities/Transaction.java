@@ -62,6 +62,11 @@ public class Transaction {
     @JoinColumn(name = "investment_plan_id")
     private InvestmentPlan investmentPlan;
 
+    // For fund contribution transactions: linked fund (budget)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "budget_id")
+    private Budget budget;
+
     @OneToMany(mappedBy = "transaction", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private java.util.List<TransactionAttachment> attachments;
 }

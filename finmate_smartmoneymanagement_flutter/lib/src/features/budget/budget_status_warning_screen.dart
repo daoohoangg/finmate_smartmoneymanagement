@@ -13,13 +13,15 @@ class BudgetStatusWarningScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.page,
       appBar: AppBar(
-        title: const Text('Budget Warning'),
+        title: const Text('Funds Warning'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new),
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.overview),
+      bottomNavigationBar: const FinMateBottomNav(
+        active: FinMateNavItem.overview,
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -31,28 +33,25 @@ class BudgetStatusWarningScreen extends StatelessWidget {
                 children: [
                   Text(
                     'You are close to your spending limit',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(fontWeight: FontWeight.w700),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     'Review your upcoming expenses to stay on track.',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: AppColors.textSecondary),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                   const SizedBox(height: 14),
                   _WarningBanner(),
                   const SizedBox(height: 16),
                   Text(
                     'Overall Progress',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(fontWeight: FontWeight.w600),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Row(
@@ -64,17 +63,18 @@ class BudgetStatusWarningScreen extends StatelessWidget {
                             value: 0.85,
                             minHeight: 8,
                             backgroundColor: AppColors.border,
-                            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFF97316)),
+                            valueColor: const AlwaysStoppedAnimation<Color>(
+                              Color(0xFFF97316),
+                            ),
                           ),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Text(
                         '85%',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(color: const Color(0xFFF97316)),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: const Color(0xFFF97316),
+                        ),
                       ),
                     ],
                   ),
@@ -124,7 +124,7 @@ class BudgetStatusWarningScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                      child: const Text('Adjust Budget'),
+                      child: const Text('Adjust Funds'),
                     ),
                   ),
                 ],
@@ -153,11 +153,10 @@ class _WarningBanner extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'You have used 85% of your budget.',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: AppColors.textSecondary),
+              'You have used 85% of your funds.',
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
             ),
           ),
         ],
@@ -181,10 +180,9 @@ class _CategoryDetailsCard extends StatelessWidget {
         children: [
           Text(
             'Category Details',
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(fontWeight: FontWeight.w600),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           _Row(label: 'Category', value: 'Food & Dining'),
@@ -201,7 +199,11 @@ class _CategoryDetailsCard extends StatelessWidget {
 }
 
 class _Row extends StatelessWidget {
-  const _Row({required this.label, required this.value, this.highlight = false});
+  const _Row({
+    required this.label,
+    required this.value,
+    this.highlight = false,
+  });
 
   final String label;
   final String value;
@@ -213,17 +215,17 @@ class _Row extends StatelessWidget {
       children: [
         Text(
           label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.textSecondary,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
         ),
         const Spacer(),
         Text(
           value,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: highlight ? const Color(0xFFF97316) : AppColors.textPrimary,
-                fontWeight: FontWeight.w600,
-              ),
+            color: highlight ? const Color(0xFFF97316) : AppColors.textPrimary,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ],
     );

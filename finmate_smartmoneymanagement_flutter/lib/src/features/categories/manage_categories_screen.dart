@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../shared/widgets/finmate_bottom_nav.dart';
+import '../wallets/models/wallet.dart';
+import '../wallets/services/wallet_service.dart';
 import 'create_category_screen.dart';
-import 'delete_category_screen.dart';
 import 'models/category.dart';
 import 'services/category_service.dart';
 import 'utils/category_ui.dart';
-import '../../shared/widgets/finmate_bottom_nav.dart';
 
 class ManageCategoriesScreen extends StatefulWidget {
   const ManageCategoriesScreen({super.key});
@@ -20,31 +21,48 @@ class ManageCategoriesScreen extends StatefulWidget {
 class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
   bool _isExpense = true;
   bool _isLoading = false;
+  bool? _isDeletingCategory = false;
+  bool? _isCreatingWallet = false;
   String? _errorMessage;
   List<Category> _categories = [];
+  List<Wallet> _wallets = [];
+  final Set<int> _walletBusyIds = <int>{};
 
   CategoryService? _categoryService;
+  WalletService? _walletService;
 
   CategoryService get _service => _categoryService ??= CategoryService();
+  WalletService get _walletSvc => _walletService ??= WalletService();
 
   @override
   void initState() {
     super.initState();
-    _loadCategories();
+    _loadData();
   }
 
-  Future<void> _loadCategories() async {
+  Future<void> _loadData() async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
     try {
-      final type = _isExpense ? CategoryType.expense : CategoryType.income;
-      final categories = await _service.getCategories(type: type);
-      if (!mounted) return;
-      setState(() {
-        _categories = categories;
-      });
+      if (_isExpense) {
+        final categories = await _service.getCategories(type: CategoryType.expense);
+        if (!mounted) return;
+        setState(() {
+          _categories = categories;
+          _wallets = const <Wallet>[];
+        });
+      } else {
+        var wallets = await _walletSvc.getWallets();
+        wallets = List<Wallet>.from(wallets)
+          ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+        if (!mounted) return;
+        setState(() {
+          _wallets = wallets;
+          _categories = const <Category>[];
+        });
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -57,28 +75,330 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
     }
   }
 
-  List<_CategoryItem> _buildItems() {
-    final parentCategories = _categories.where((category) => category.parentId == null).toList()
-      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+  bool _toSafeBool(dynamic value) {
+    if (value is bool) return value;
+    if (value is String) return value.toLowerCase() == 'true';
+    if (value is num) return value != 0;
+    return false;
+  }
 
-    final childCounts = <int, int>{};
+  int _groupOrder(CategoryGroup? group) {
+    switch (group) {
+      case CategoryGroup.necessary:
+        return 0;
+      case CategoryGroup.accumulation:
+        return 1;
+      case CategoryGroup.flexibility:
+        return 2;
+      case null:
+        return 100;
+    }
+  }
+
+  List<Category> _selectExpenseMainCategories(List<Category> parentCandidates) {
+    final candidates = List<Category>.from(parentCandidates)
+      ..sort((a, b) {
+        final groupDiff = _groupOrder(a.group) - _groupOrder(b.group);
+        if (groupDiff != 0) return groupDiff;
+        final aSystem = _toSafeBool((a as dynamic).isSystemCategory);
+        final bSystem = _toSafeBool((b as dynamic).isSystemCategory);
+        if (aSystem != bSystem) return aSystem ? 1 : -1;
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
+
+    final selected = <Category>[];
+    const preferredGroups = <CategoryGroup>[
+      CategoryGroup.necessary,
+      CategoryGroup.accumulation,
+      CategoryGroup.flexibility,
+    ];
+
+    for (final group in preferredGroups) {
+      for (final category in candidates) {
+        if (category.group == group && !selected.any((item) => item.id == category.id)) {
+          selected.add(category);
+          break;
+        }
+      }
+    }
+
+    for (final category in candidates) {
+      if (selected.length >= 3) break;
+      if (selected.any((item) => item.id == category.id)) continue;
+      selected.add(category);
+    }
+
+    if (selected.length > 3) return selected.take(3).toList();
+    return selected;
+  }
+
+  List<_CategoryItem> _buildCategoryItems() {
+    final parentCandidates = _categories.where((category) => category.parentId == null).toList();
+    final parentCategories = _selectExpenseMainCategories(parentCandidates);
+    final parentIds = parentCategories.map((item) => item.id).toSet();
+
+    final childrenByParent = <int, List<Category>>{};
     for (final category in _categories) {
       final parentId = category.parentId;
-      if (parentId == null) continue;
-      childCounts[parentId] = (childCounts[parentId] ?? 0) + 1;
+      if (parentId == null || !parentIds.contains(parentId)) continue;
+      childrenByParent.putIfAbsent(parentId, () => <Category>[]).add(category);
+    }
+    for (final children in childrenByParent.values) {
+      children.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     }
 
     return parentCategories
         .map(
-          (category) => _CategoryItem(
-            name: category.name,
-            count: childCounts[category.id] ?? 0,
-            icon: CategoryUi.iconFromString(category.icon),
-            color: CategoryUi.colorFromString(category.color, fallback: AppColors.primaryBlue),
-            isSystemCategory: category.isSystemCategory,
-          ),
+          (category) {
+            final children = (childrenByParent[category.id] ?? const <Category>[])
+                .map(
+                  (child) => _CategoryChildItem(
+                    id: child.id,
+                    name: child.name,
+                    icon: CategoryUi.iconFromString(child.icon),
+                    color: CategoryUi.colorFromString(
+                      child.color,
+                      fallback: AppColors.primaryBlue,
+                    ),
+                    isSystemCategory: _toSafeBool((child as dynamic).isSystemCategory),
+                  ),
+                )
+                .toList();
+
+            return _CategoryItem(
+              id: category.id,
+              name: category.name,
+              count: children.length,
+              icon: CategoryUi.iconFromString(category.icon),
+              color: CategoryUi.colorFromString(category.color, fallback: AppColors.primaryBlue),
+              isSystemCategory: _toSafeBool((category as dynamic).isSystemCategory),
+              children: children,
+            );
+          },
         )
         .toList();
+  }
+
+  Future<void> _openCreateSubcategory({int? parentCategoryId}) async {
+    final created = await Navigator.pushNamed(
+      context,
+      CreateCategoryScreen.routeName,
+      arguments: CreateCategoryArgs(
+        type: CategoryType.expense,
+        parentCategoryId: parentCategoryId,
+        lockParentSelection: parentCategoryId != null,
+      ),
+    );
+    if (created == true && mounted) {
+      await _loadData();
+    }
+  }
+
+  Future<void> _confirmAndDeleteCategory({
+    required int categoryId,
+    required String categoryName,
+    int childCount = 0,
+  }) async {
+    if (_isDeletingCategory == true || _isLoading) return;
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Category'),
+        content: Text(
+          childCount > 0
+              ? 'Category "$categoryName" has $childCount subcategories and cannot be deleted.'
+              : 'Delete category "$categoryName"?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          if (childCount == 0)
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Delete'),
+            ),
+        ],
+      ),
+    );
+    if (shouldDelete != true) return;
+    setState(() => _isDeletingCategory = true);
+    try {
+      await _service.deleteCategory(categoryId);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Category deleted')),
+      );
+      await _loadData();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isDeletingCategory = false);
+      }
+    }
+  }
+
+  Future<String?> _promptWalletName({
+    required String title,
+    required String actionLabel,
+    String initialValue = '',
+  }) async {
+    final controller = TextEditingController(text: initialValue);
+    String? error;
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(title),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: controller,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: 'Wallet name',
+                  errorText: error,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                final value = controller.text.trim();
+                if (value.isEmpty) {
+                  setDialogState(() => error = 'Wallet name is required');
+                  return;
+                }
+                Navigator.pop(context, value);
+              },
+              child: Text(actionLabel),
+            ),
+          ],
+        ),
+      ),
+    );
+    controller.dispose();
+    return result;
+  }
+
+  Future<void> _createWallet() async {
+    if (_isCreatingWallet == true || _isLoading) return;
+    final name = await _promptWalletName(
+      title: 'Create Wallet',
+      actionLabel: 'Create',
+    );
+    if (name == null) return;
+
+    setState(() => _isCreatingWallet = true);
+    try {
+      await _walletSvc.createWallet(
+        name: name,
+        icon: _inferWalletIcon(name),
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Wallet created')),
+      );
+      await _loadData();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isCreatingWallet = false);
+      }
+    }
+  }
+
+  String _inferWalletIcon(String name) {
+    final normalized = name.trim().toLowerCase();
+    if (normalized.contains('bank')) return 'account_balance_outlined';
+    if (normalized.contains('saving')) return 'savings_outlined';
+    if (normalized.contains('card') ||
+        normalized.contains('visa') ||
+        normalized.contains('master')) {
+      return 'credit_card_outlined';
+    }
+    if (normalized.contains('cash')) return 'payments_outlined';
+    if (normalized.contains('pay') || normalized.contains('wallet')) {
+      return 'account_balance_wallet_outlined';
+    }
+    return 'account_balance_wallet_outlined';
+  }
+
+  String _resolveWalletIcon(Wallet wallet) {
+    final raw = wallet.icon?.trim();
+    if (raw != null && raw.isNotEmpty) {
+      return raw;
+    }
+    return _inferWalletIcon(wallet.name);
+  }
+
+  Future<void> _deleteWallet(Wallet wallet) async {
+    if (_walletBusyIds.contains(wallet.id) || _isLoading) return;
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Wallet'),
+        content: Text('Delete wallet "${wallet.name}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (shouldDelete != true) return;
+
+    setState(() => _walletBusyIds.add(wallet.id));
+    try {
+      await _walletSvc.deleteWallet(wallet.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Wallet deleted')),
+      );
+      await _loadData();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _walletBusyIds.remove(wallet.id));
+      }
+    }
+  }
+
+  Widget _buildSwipeDeleteBackground() {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.primaryRed.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.primaryRed.withOpacity(0.3)),
+      ),
+      alignment: Alignment.centerRight,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: const Icon(Icons.delete_outline, color: AppColors.primaryRed),
+    );
   }
 
   Widget _buildStatusMessage(
@@ -113,7 +433,73 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
     );
   }
 
-  Widget _buildCategoryContent(BuildContext context) {
+  Widget _buildExpenseCategoryContent(BuildContext context) {
+    final items = _buildCategoryItems();
+    if (items.isEmpty) {
+      return _buildStatusMessage(
+        context,
+        'No main categories found.',
+      );
+    }
+    return Column(
+      children: items
+          .map(
+            (item) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _CategoryCard(
+                  item: item,
+                  isDeleting: _isDeletingCategory == true,
+                  onDeleteChild: (child) async {
+                    await _confirmAndDeleteCategory(
+                      categoryId: child.id,
+                      categoryName: child.name,
+                    );
+                  },
+                ),
+              );
+            },
+          )
+          .toList(),
+    );
+  }
+
+  Widget _buildIncomeWalletContent(BuildContext context) {
+    if (_wallets.isEmpty) {
+      return _buildStatusMessage(
+        context,
+        'Income categories are wallets. Create your first wallet.',
+      );
+    }
+    return Column(
+      children: _wallets
+          .map(
+            (wallet) {
+              final card = _WalletCard(
+                wallet: wallet,
+                iconString: _resolveWalletIcon(wallet),
+                isBusy: _walletBusyIds.contains(wallet.id),
+              );
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Dismissible(
+                  key: ValueKey('income-wallet-${wallet.id}'),
+                  direction: DismissDirection.endToStart,
+                  background: _buildSwipeDeleteBackground(),
+                  confirmDismiss: (_) async {
+                    await _deleteWallet(wallet);
+                    return false;
+                  },
+                  child: card,
+                ),
+              );
+            },
+          )
+          .toList(),
+    );
+  }
+
+  Widget _buildBodyContent(BuildContext context) {
     if (_isLoading) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 24),
@@ -127,38 +513,18 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
         context,
         _errorMessage!,
         actionLabel: 'Retry',
-        onAction: _loadCategories,
+        onAction: _loadData,
       );
     }
-    final items = _buildItems();
-    if (items.isEmpty) {
-      return _buildStatusMessage(
-        context,
-        'No categories yet. Create your first one.',
-      );
+    if (_isExpense) {
+      return _buildExpenseCategoryContent(context);
     }
-    return Column(
-      children: items
-          .map(
-            (item) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _CategoryCard(
-                item: item,
-                onDelete: item.isSystemCategory
-                    ? null
-                    : () => Navigator.pushNamed(
-                          context,
-                          DeleteCategoryScreen.routeName,
-                        ),
-              ),
-            ),
-          )
-          .toList(),
-    );
+    return _buildIncomeWalletContent(context);
   }
 
   @override
   Widget build(BuildContext context) {
+    final fabDisabled = _isLoading || _isDeletingCategory == true || _isCreatingWallet == true;
     return Scaffold(
       backgroundColor: AppColors.page,
       appBar: AppBar(
@@ -170,17 +536,16 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.primaryRed,
+        onPressed: fabDisabled
+            ? null
+            : () {
+                if (_isExpense) {
+                  _openCreateSubcategory();
+                } else {
+                  _createWallet();
+                }
+              },
         child: const Icon(Icons.add, color: Colors.white),
-        onPressed: () async {
-          final created = await Navigator.pushNamed(
-            context,
-            CreateCategoryScreen.routeName,
-            arguments: _isExpense ? CategoryType.expense : CategoryType.income,
-          );
-          if (created == true) {
-            _loadCategories();
-          }
-        },
       ),
       bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.settings),
       body: SafeArea(
@@ -199,11 +564,28 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
                     onChanged: (value) {
                       if (_isExpense == value) return;
                       setState(() => _isExpense = value);
-                      _loadCategories();
+                      _loadData();
                     },
                   ),
                   const SizedBox(height: 16),
-                  _buildCategoryContent(context),
+                  if (_isExpense)
+                    Text(
+                      'Expense keeps exactly 3 main categories. Tap to expand subcategories, swipe subcategories left to delete.',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: AppColors.textSecondary),
+                    )
+                  else
+                    Text(
+                      'Income categories are managed as wallets.',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: AppColors.textSecondary),
+                    ),
+                  const SizedBox(height: 12),
+                  _buildBodyContent(context),
                   const SizedBox(height: 80),
                 ],
               ),
@@ -306,28 +688,191 @@ class _SegmentButton extends StatelessWidget {
 
 class _CategoryItem {
   const _CategoryItem({
+    required this.id,
     required this.name,
     required this.count,
+    required this.children,
     required this.icon,
     required this.color,
-    required this.isSystemCategory,
+    this.isSystemCategory,
   });
 
+  final int id;
   final String name;
   final int count;
+  final List<_CategoryChildItem> children;
   final IconData icon;
   final Color color;
-  final bool isSystemCategory;
+  final bool? isSystemCategory;
+}
+
+class _CategoryChildItem {
+  const _CategoryChildItem({
+    required this.id,
+    required this.name,
+    required this.icon,
+    required this.color,
+    this.isSystemCategory,
+  });
+
+  final int id;
+  final String name;
+  final IconData icon;
+  final Color color;
+  final bool? isSystemCategory;
 }
 
 class _CategoryCard extends StatelessWidget {
-  const _CategoryCard({required this.item, this.onDelete});
+  const _CategoryCard({
+    required this.item,
+    this.onDeleteChild,
+    this.isDeleting = false,
+  });
 
   final _CategoryItem item;
-  final VoidCallback? onDelete;
+  final Future<void> Function(_CategoryChildItem child)? onDeleteChild;
+  final bool isDeleting;
 
   @override
   Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+          childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+          leading: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: item.color.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(item.icon, color: item.color, size: 18),
+          ),
+          title: Text(
+            item.name,
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          subtitle: Text(
+            '${item.count} Subcategories',
+            style: Theme.of(context)
+                .textTheme
+                .bodySmall
+                ?.copyWith(color: AppColors.textSecondary),
+          ),
+          trailing: isDeleting
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.textMuted),
+          children: item.children.isEmpty
+              ? [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'No subcategories',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: AppColors.textSecondary),
+                      ),
+                    ),
+                  ),
+                ]
+              : item.children
+                  .map(
+                    (child) {
+                      final row = Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: AppColors.fieldBackground,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: child.color.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(child.icon, color: child.color, size: 16),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                child.name,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      final canDelete = child.isSystemCategory != true && onDeleteChild != null;
+                      final wrapped = canDelete
+                          ? Dismissible(
+                              key: ValueKey('subcategory-${item.id}-${child.id}'),
+                              direction: DismissDirection.endToStart,
+                              background: Container(
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryRed.withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                alignment: Alignment.centerRight,
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                child: const Icon(Icons.delete_outline, color: AppColors.primaryRed),
+                              ),
+                              confirmDismiss: (_) async {
+                                await onDeleteChild!(child);
+                                return false;
+                              },
+                              child: row,
+                            )
+                          : row;
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: wrapped,
+                      );
+                    },
+                  )
+                  .toList(),
+        ),
+      ),
+    );
+  }
+}
+
+class _WalletCard extends StatelessWidget {
+  const _WalletCard({
+    required this.wallet,
+    required this.iconString,
+    this.isBusy = false,
+  });
+
+  final Wallet wallet;
+  final String iconString;
+  final bool isBusy;
+
+  @override
+  Widget build(BuildContext context) {
+    final icon = CategoryUi.iconFromString(iconString);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
@@ -340,10 +885,10 @@ class _CategoryCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: item.color.withOpacity(0.15),
+              color: AppColors.primaryBlue.withOpacity(0.12),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(item.icon, color: item.color, size: 18),
+            child: Icon(icon, color: AppColors.primaryBlue, size: 18),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -351,7 +896,7 @@ class _CategoryCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item.name,
+                  wallet.name,
                   style: Theme.of(context)
                       .textTheme
                       .bodyMedium
@@ -359,7 +904,7 @@ class _CategoryCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${item.count} Subcategories',
+                  'Wallet',
                   style: Theme.of(context)
                       .textTheme
                       .bodySmall
@@ -368,16 +913,13 @@ class _CategoryCard extends StatelessWidget {
               ],
             ),
           ),
-          if (!item.isSystemCategory)
-            IconButton(
-              icon: const Icon(Icons.edit, color: AppColors.textMuted, size: 18),
-              onPressed: () {},
-            ),
-          if (!item.isSystemCategory)
-            IconButton(
-              icon: const Icon(Icons.delete_outline, color: AppColors.primaryRed, size: 18),
-              onPressed: onDelete,
-            ),
+          isBusy
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.swipe_left_rounded, color: AppColors.textMuted, size: 18),
         ],
       ),
     );

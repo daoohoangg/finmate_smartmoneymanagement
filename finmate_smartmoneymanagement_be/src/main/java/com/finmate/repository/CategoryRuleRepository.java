@@ -10,4 +10,6 @@ public interface CategoryRuleRepository extends JpaRepository<CategoryRule, Long
     List<CategoryRule> findByUserId(UUID userId);
 
     List<CategoryRule> findByUserIdAndIsActiveTrueOrderByPriorityDesc(UUID userId);
+
+    boolean existsByUserIdAndCategoryId(UUID userId, Long categoryId);
 }

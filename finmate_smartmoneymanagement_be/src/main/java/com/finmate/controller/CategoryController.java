@@ -100,8 +100,11 @@ public class CategoryController {
             @ApiResponse(responseCode = "404", description = "Category not found")
     })
     public ResponseEntity<Void> deleteCategory(
+            @Parameter(description = "User ID", required = false) @RequestHeader(value = "User-Id", required = false) UUID userId,
+            @AuthenticationPrincipal UserPrincipal principal,
             @Parameter(description = "Category ID", required = true) @PathVariable Long id) {
-        categoryService.deleteCategory(id);
+        UUID resolved = UserIdResolver.resolve(userId, principal);
+        categoryService.deleteCategory(resolved, id);
         return ResponseEntity.noContent().build();
     }
 }

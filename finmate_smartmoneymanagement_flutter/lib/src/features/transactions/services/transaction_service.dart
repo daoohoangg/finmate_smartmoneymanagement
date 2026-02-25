@@ -6,6 +6,14 @@ class TransactionService {
 
   final ApiClient _client;
 
+  Future<List<Map<String, dynamic>>> getTransactions() async {
+    final data = await _client.get('/api/transactions');
+    if (data is List) {
+      return data.whereType<Map<String, dynamic>>().toList();
+    }
+    return [];
+  }
+
   Future<Map<String, dynamic>> createTransaction({
     required int walletId,
     int? categoryId,

@@ -13,7 +13,7 @@ class BudgetCreateWarningScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.page,
       appBar: AppBar(
-        title: const Text('Create Budget'),
+        title: const Text('Create Funds'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new),
           onPressed: () => Navigator.pop(context),
@@ -25,7 +25,9 @@ class BudgetCreateWarningScreen extends StatelessWidget {
           ),
         ],
       ),
-      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.overview),
+      bottomNavigationBar: const FinMateBottomNav(
+        active: FinMateNavItem.overview,
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -39,10 +41,9 @@ class BudgetCreateWarningScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   Text(
                     'Category',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(fontWeight: FontWeight.w600),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   DropdownButtonFormField<String>(
@@ -52,33 +53,38 @@ class BudgetCreateWarningScreen extends StatelessWidget {
                       fillColor: AppColors.card,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.primaryRed),
+                        borderSide: const BorderSide(
+                          color: AppColors.primaryRed,
+                        ),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.primaryRed),
+                        borderSide: const BorderSide(
+                          color: AppColors.primaryRed,
+                        ),
                       ),
                     ),
                     items: const [
-                      DropdownMenuItem(value: 'Select Category', child: Text('Select Category')),
+                      DropdownMenuItem(
+                        value: 'Select Category',
+                        child: Text('Select Category'),
+                      ),
                     ],
                     onChanged: (_) {},
                   ),
                   const SizedBox(height: 6),
                   Text(
                     'Category is required',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: AppColors.primaryRed),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.primaryRed,
+                    ),
                   ),
                   const SizedBox(height: 14),
                   Text(
-                    'Budget Limit Amount',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(fontWeight: FontWeight.w600),
+                    'Funds Limit Amount',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   TextField(
@@ -89,37 +95,38 @@ class BudgetCreateWarningScreen extends StatelessWidget {
                       fillColor: AppColors.card,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.primaryRed),
+                        borderSide: const BorderSide(
+                          color: AppColors.primaryRed,
+                        ),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.primaryRed),
+                        borderSide: const BorderSide(
+                          color: AppColors.primaryRed,
+                        ),
                       ),
                     ),
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Budget limit is required',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: AppColors.primaryRed),
+                    'Funds limit is required',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.primaryRed,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'Invalid amount',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: AppColors.primaryRed),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.primaryRed,
+                    ),
                   ),
                   const SizedBox(height: 14),
                   Text(
                     'Period',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(fontWeight: FontWeight.w600),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   DropdownButtonFormField<String>(
@@ -137,7 +144,10 @@ class BudgetCreateWarningScreen extends StatelessWidget {
                       ),
                     ),
                     items: const [
-                      DropdownMenuItem(value: 'Monthly', child: Text('Monthly')),
+                      DropdownMenuItem(
+                        value: 'Monthly',
+                        child: Text('Monthly'),
+                      ),
                       DropdownMenuItem(value: 'Weekly', child: Text('Weekly')),
                     ],
                     onChanged: (_) {},
@@ -156,17 +166,16 @@ class BudgetCreateWarningScreen extends StatelessWidget {
                         ),
                         elevation: 0,
                       ),
-                      child: const Text('Save Budget'),
+                      child: const Text('Save Funds'),
                     ),
                   ),
                   const SizedBox(height: 10),
                   Center(
                     child: Text(
                       'Please correct the errors above to continue.',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: AppColors.textSecondary),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                   ),
                 ],
@@ -199,18 +208,16 @@ class _WarningCard extends StatelessWidget {
               children: [
                 Text(
                   'Warning',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(fontWeight: FontWeight.w600),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Budget conflict. A budget for this category and period already exists. Please choose a different category or update the existing one.',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: AppColors.textSecondary),
+                  'Funds conflict. A fund for this category and period already exists. Please choose a different category or update the existing one.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ),

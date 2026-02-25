@@ -34,4 +34,25 @@ class WalletService {
     final data = await _client.post('/api/wallets', body: body);
     return Wallet.fromJson(data as Map<String, dynamic>);
   }
+
+  Future<Wallet> updateWallet({
+    required int walletId,
+    required String name,
+    required num balance,
+    required String currency,
+    String? icon,
+  }) async {
+    final body = <String, dynamic>{
+      'name': name,
+      'balance': balance,
+      'currency': currency,
+      'icon': icon,
+    };
+    final data = await _client.put('/api/wallets/$walletId', body: body);
+    return Wallet.fromJson(data as Map<String, dynamic>);
+  }
+
+  Future<void> deleteWallet(int walletId) async {
+    await _client.delete('/api/wallets/$walletId');
+  }
 }

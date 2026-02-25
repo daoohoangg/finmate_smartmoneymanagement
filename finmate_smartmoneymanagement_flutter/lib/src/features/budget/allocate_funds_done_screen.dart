@@ -13,13 +13,15 @@ class AllocateFundsDoneScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.page,
       appBar: AppBar(
-        title: const Text('Allocate Funds'),
+        title: const Text('Allocate Budget'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new),
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.overview),
+      bottomNavigationBar: const FinMateBottomNav(
+        active: FinMateNavItem.overview,
+      ),
       body: SafeArea(
         child: Stack(
           children: [
@@ -35,10 +37,9 @@ class AllocateFundsDoneScreen extends StatelessWidget {
                       const SizedBox(height: 16),
                       Text(
                         'Progress',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(fontWeight: FontWeight.w600),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Row(
@@ -50,28 +51,26 @@ class AllocateFundsDoneScreen extends StatelessWidget {
                                 value: 1.0,
                                 minHeight: 8,
                                 backgroundColor: AppColors.border,
-                                valueColor:
-                                    const AlwaysStoppedAnimation<Color>(Color(0xFF22C55E)),
+                                valueColor: const AlwaysStoppedAnimation<Color>(
+                                  Color(0xFF22C55E),
+                                ),
                               ),
                             ),
                           ),
                           const SizedBox(width: 8),
                           Text(
                             '100%',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
+                            style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(color: const Color(0xFF22C55E)),
                           ),
                         ],
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Budget Breakdown',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(fontWeight: FontWeight.w600),
+                        'Funds Breakdown',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       const _BreakdownRow(
@@ -148,18 +147,16 @@ class _AvailableCompleteCard extends StatelessWidget {
               children: [
                 Text(
                   '0 VND Available',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(fontWeight: FontWeight.w700),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'All money has been assigned a purpose.',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: AppColors.textSecondary),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ),
@@ -173,9 +170,9 @@ class _AvailableCompleteCard extends StatelessWidget {
             child: Text(
               'Allocated',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFF16A34A),
-                    fontWeight: FontWeight.w700,
-                  ),
+                color: const Color(0xFF16A34A),
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],
@@ -206,18 +203,16 @@ class _BreakdownRow extends StatelessWidget {
           Expanded(
             child: Text(
               title,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(fontWeight: FontWeight.w600),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
             ),
           ),
           Text(
             amount,
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: AppColors.textSecondary),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
           ),
         ],
       ),
@@ -248,16 +243,19 @@ class _SuccessToast extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Funds allocated successfully.',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: Colors.white),
+              'Budget allocated successfully.',
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: Colors.white),
             ),
           ),
           const Text(
             'DISMISS',
-            style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w600, fontSize: 12),
+            style: TextStyle(
+              color: Colors.white70,
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+            ),
           ),
         ],
       ),

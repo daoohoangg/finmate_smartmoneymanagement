@@ -54,7 +54,9 @@ class FinMateApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final storage = SessionStorage.instance;
     final hasSession = storage.token != null;
-    final initialRoute = hasSession ? MonthlyDashboardScreen.routeName : LoginScreen.routeName;
+    final initialRoute = hasSession
+        ? MonthlyDashboardScreen.routeName
+        : LoginScreen.routeName;
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'FinMate',
@@ -74,22 +76,33 @@ class FinMateApp extends StatelessWidget {
         SpendingInsightsScreen.routeName: (_) => const SpendingInsightsScreen(),
         AddTransactionScreen.routeName: (_) => const AddTransactionScreen(),
         EditTransactionScreen.routeName: (_) => const EditTransactionScreen(),
-        DeleteTransactionScreen.routeName: (_) => const DeleteTransactionScreen(),
+        DeleteTransactionScreen.routeName: (_) =>
+            const DeleteTransactionScreen(),
         TransactionsListScreen.routeName: (_) => const TransactionsListScreen(),
-        FilterTransactionsScreen.routeName: (_) => const FilterTransactionsScreen(),
+        FilterTransactionsScreen.routeName: (_) =>
+            const FilterTransactionsScreen(),
         SearchResultsScreen.routeName: (_) => const SearchResultsScreen(),
         BudgetCreateScreen.routeName: (_) => const BudgetCreateScreen(),
-        BudgetCreateWarningScreen.routeName: (_) => const BudgetCreateWarningScreen(),
-        BudgetCreateSuccessScreen.routeName: (_) => const BudgetCreateSuccessScreen(),
-        BudgetStatusTrackScreen.routeName: (_) => const BudgetStatusTrackScreen(),
-        BudgetStatusWarningScreen.routeName: (_) => const BudgetStatusWarningScreen(),
-        BudgetStatusExceededScreen.routeName: (_) => const BudgetStatusExceededScreen(),
-        BudgetStatusEmptyScreen.routeName: (_) => const BudgetStatusEmptyScreen(),
+        BudgetCreateWarningScreen.routeName: (_) =>
+            const BudgetCreateWarningScreen(),
+        BudgetCreateSuccessScreen.routeName: (_) =>
+            const BudgetCreateSuccessScreen(),
+        BudgetStatusTrackScreen.routeName: (_) =>
+            const BudgetStatusTrackScreen(),
+        BudgetStatusWarningScreen.routeName: (_) =>
+            const BudgetStatusWarningScreen(),
+        BudgetStatusExceededScreen.routeName: (_) =>
+            const BudgetStatusExceededScreen(),
+        BudgetStatusEmptyScreen.routeName: (_) =>
+            const BudgetStatusEmptyScreen(),
         AllocateFundsScreen.routeName: (_) => const AllocateFundsScreen(),
-        AllocateFundsErrorScreen.routeName: (_) => const AllocateFundsErrorScreen(),
-        AllocateFundsDoneScreen.routeName: (_) => const AllocateFundsDoneScreen(),
+        AllocateFundsErrorScreen.routeName: (_) =>
+            const AllocateFundsErrorScreen(),
+        AllocateFundsDoneScreen.routeName: (_) =>
+            const AllocateFundsDoneScreen(),
         OnboardingFlowScreen.routeName: (_) => const OnboardingFlowScreen(),
-        PlanRecommendationScreen.routeName: (_) => const PlanRecommendationScreen(),
+        PlanRecommendationScreen.routeName: (_) =>
+            const PlanRecommendationScreen(),
         ManualAllocationScreen.routeName: (_) => const ManualAllocationScreen(),
         FixOverspendingScreen.routeName: (_) => const FixOverspendingScreen(),
         RecurringSetupScreen.routeName: (_) => const RecurringSetupScreen(),

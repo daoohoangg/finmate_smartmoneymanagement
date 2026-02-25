@@ -21,6 +21,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     List<Transaction> findByUserIdAndType(UUID userId, TransactionType type);
 
+    boolean existsByUserIdAndCategoryId(UUID userId, Long categoryId);
+
     @Query("SELECT t FROM Transaction t WHERE t.user.id = :userId AND " +
             "(:walletId IS NULL OR t.wallet.id = :walletId) AND " +
             "(:categoryId IS NULL OR t.category.id = :categoryId) AND " +

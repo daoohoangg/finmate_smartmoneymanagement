@@ -7,6 +7,18 @@ import 'services/category_service.dart';
 import 'utils/category_ui.dart';
 import '../../shared/widgets/finmate_bottom_nav.dart';
 
+class CreateCategoryArgs {
+  const CreateCategoryArgs({
+    required this.type,
+    this.parentCategoryId,
+    this.lockParentSelection = false,
+  });
+
+  final CategoryType type;
+  final int? parentCategoryId;
+  final bool lockParentSelection;
+}
+
 class CreateCategoryScreen extends StatefulWidget {
   const CreateCategoryScreen({super.key});
 
@@ -47,6 +59,7 @@ class _CreateCategoryScreenState extends State<CreateCategoryScreen> {
   bool _isLoadingParents = false;
   bool _isSaving = false;
   bool _didLoadArgs = false;
+  bool _lockParentSelection = false;
 
   CategoryService? _categoryService;
 
@@ -59,6 +72,10 @@ class _CreateCategoryScreenState extends State<CreateCategoryScreen> {
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args is CategoryType) {
       _type = args;
+    } else if (args is CreateCategoryArgs) {
+      _type = args.type;
+      _parentCategoryId = args.parentCategoryId;
+      _lockParentSelection = args.lockParentSelection;
     }
     _didLoadArgs = true;
     _loadParents();
@@ -71,6 +88,13 @@ class _CreateCategoryScreenState extends State<CreateCategoryScreen> {
   }
 
   Future<void> _loadParents() async {
+    if (_type != CategoryType.expense) {
+      setState(() {
+        _parentOptions = const <Category>[];
+        _parentCategoryId = null;
+      });
+      return;
+    }
     setState(() => _isLoadingParents = true);
     try {
       final categories = await _service.getCategories(type: _type);
@@ -159,10 +183,20 @@ class _CreateCategoryScreenState extends State<CreateCategoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    Category? selectedParent;
+    if (_parentCategoryId != null) {
+      for (final option in _parentOptions) {
+        if (option.id == _parentCategoryId) {
+          selectedParent = option;
+          break;
+        }
+      }
+    }
+
     return Scaffold(
       backgroundColor: AppColors.page,
       appBar: AppBar(
-        title: const Text('Create Category'),
+        title: Text(_lockParentSelection ? 'Add Subcategory' : 'Create Category'),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.pop(context),
@@ -242,35 +276,53 @@ class _CreateCategoryScreenState extends State<CreateCategoryScreen> {
                       padding: EdgeInsets.only(bottom: 8),
                       child: LinearProgressIndicator(minHeight: 2),
                     ),
-                  DropdownButtonFormField<int?>(
-                    value: _parentCategoryId,
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: AppColors.card,
-                      border: OutlineInputBorder(
+                  if (_lockParentSelection && selectedParent != null)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: AppColors.card,
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.border),
+                        border: Border.all(color: AppColors.border),
                       ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.border),
+                      child: Text(
+                        selectedParent.name,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.copyWith(fontWeight: FontWeight.w600),
                       ),
-                    ),
-                    items: [
-                      ..._parentOptions.map(
-                        (category) => DropdownMenuItem<int?>(
-                          value: category.id,
-                          child: Text(category.name),
+                    )
+                  else
+                    DropdownButtonFormField<int?>(
+                      value: _parentCategoryId,
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: AppColors.card,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: AppColors.border),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: AppColors.border),
                         ),
                       ),
-                    ],
-                    onChanged: _isLoadingParents
-                        ? null
-                        : (value) => setState(() => _parentCategoryId = value),
-                  ),
+                      items: [
+                        ..._parentOptions.map(
+                          (category) => DropdownMenuItem<int?>(
+                            value: category.id,
+                            child: Text(category.name),
+                          ),
+                        ),
+                      ],
+                      onChanged: _isLoadingParents || _lockParentSelection
+                          ? null
+                          : (value) => setState(() => _parentCategoryId = value),
+                    ),
                   const SizedBox(height: 24),
                   PrimaryButton(
-                    label: 'Save Category',
+                    label: _lockParentSelection ? 'Add Subcategory' : 'Save Category',
                     color: AppColors.primaryRed,
                     isLoading: _isSaving,
                     onPressed: _isSaving ? null : _handleSave,

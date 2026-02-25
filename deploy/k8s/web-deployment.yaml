@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: finmate-web
+  labels:
+    app.kubernetes.io/name: finmate
+    app.kubernetes.io/component: web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: finmate
+      app.kubernetes.io/component: web
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: finmate
+        app.kubernetes.io/component: web
+    spec:
+      containers:
+        - name: web
+          image: __WEB_IMAGE__
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80

@@ -35,9 +35,9 @@ class _AiCoachChatScreenState extends State<AiCoachChatScreen> {
     final text = _inputController.text.trim();
     if (text.isEmpty) return;
     _inputController.clear();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Sent: $text')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Sent: $text')));
   }
 
   @override
@@ -59,17 +59,15 @@ class _AiCoachChatScreenState extends State<AiCoachChatScreen> {
               children: [
                 Text(
                   'AI Financial Coach',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(fontWeight: FontWeight.w600),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                 ),
                 Text(
                   'Online',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: AppColors.success),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: AppColors.success),
                 ),
               ],
             ),
@@ -82,7 +80,9 @@ class _AiCoachChatScreenState extends State<AiCoachChatScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.overview),
+      bottomNavigationBar: const FinMateBottomNav(
+        active: FinMateNavItem.overview,
+      ),
       body: Column(
         children: [
           Expanded(
@@ -93,14 +93,15 @@ class _AiCoachChatScreenState extends State<AiCoachChatScreen> {
                   _DateChip(label: 'Today'),
                   const SizedBox(height: 16),
                   _UserBubble(
-                    message: widget.initialMessage ??
+                    message:
+                        widget.initialMessage ??
                         'Why is my Dining Out category red?',
                     time: '10:42 AM',
                   ),
                   const SizedBox(height: 16),
                   _CoachBubble(
                     message:
-                        'Your Dining Out is overspent by \$25 because of a recent transaction at Joe\'s Pizza.\n\nTo fix this, you could move money from your Groceries or Entertainment categories.\n\nWould you like me to help you reassign those funds?',
+                        'Your Dining Out is overspent by \$25 because of a recent transaction at Joe\'s Pizza.\n\nTo fix this, you could move money from your Groceries or Entertainment categories.\n\nWould you like me to help you reassign that budget?',
                     time: '10:43 AM',
                   ),
                   const SizedBox(height: 12),
@@ -108,10 +109,9 @@ class _AiCoachChatScreenState extends State<AiCoachChatScreen> {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       'Coach is thinking...',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: AppColors.textMuted),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.textMuted,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -149,7 +149,7 @@ class _AiCoachChatScreenState extends State<AiCoachChatScreen> {
                             borderRadius: BorderRadius.circular(20),
                           ),
                         ),
-                        child: const Text('Show my budget'),
+                        child: const Text('Show my funds'),
                       ),
                     ),
                   ],
@@ -231,10 +231,10 @@ class _DateChip extends StatelessWidget {
       child: Text(
         label.toUpperCase(),
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.4,
-            ),
+          color: AppColors.textSecondary,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.4,
+        ),
       ),
     );
   }
@@ -257,18 +257,14 @@ class _UserBubble extends StatelessWidget {
             color: AppColors.primaryBlue,
             borderRadius: BorderRadius.circular(16),
           ),
-          child: Text(
-            message,
-            style: const TextStyle(color: Colors.white),
-          ),
+          child: Text(message, style: const TextStyle(color: Colors.white)),
         ),
         const SizedBox(height: 6),
         Text(
           time,
-          style: Theme.of(context)
-              .textTheme
-              .bodySmall
-              ?.copyWith(color: AppColors.textMuted),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
         ),
       ],
     );
@@ -297,25 +293,27 @@ class _CoachBubble extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.card,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Text(
                   message,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        height: 1.4,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(height: 1.4),
                 ),
               ),
               const SizedBox(height: 6),
               Text(
                 time,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: AppColors.textMuted),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
               ),
             ],
           ),

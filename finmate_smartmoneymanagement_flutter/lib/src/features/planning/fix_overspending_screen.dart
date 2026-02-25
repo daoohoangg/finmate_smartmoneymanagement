@@ -44,8 +44,9 @@ class _FixOverspendingScreenState extends State<FixOverspendingScreen> {
   ];
 
   int? _selectedIndex;
-  final TextEditingController _amountController =
-      TextEditingController(text: _overspentAmount.toStringAsFixed(2));
+  final TextEditingController _amountController = TextEditingController(
+    text: _overspentAmount.toStringAsFixed(2),
+  );
 
   @override
   void dispose() {
@@ -80,8 +81,9 @@ class _FixOverspendingScreenState extends State<FixOverspendingScreen> {
   }
 
   Future<bool?> _openMoveSheet(_MoveSource source) {
-    final amountController =
-        TextEditingController(text: _amountController.text);
+    final amountController = TextEditingController(
+      text: _amountController.text,
+    );
     String from = source.name;
     String to = _overspentCategory;
     return showModalBottomSheet<bool>(
@@ -116,9 +118,7 @@ class _FixOverspendingScreenState extends State<FixOverspendingScreen> {
                       children: [
                         Text(
                           'Move Money',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
+                          style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(fontWeight: FontWeight.w700),
                         ),
                         const Spacer(),
@@ -131,10 +131,9 @@ class _FixOverspendingScreenState extends State<FixOverspendingScreen> {
                     const SizedBox(height: 8),
                     Text(
                       'Amount',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: AppColors.textSecondary),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     TextField(
@@ -180,7 +179,10 @@ class _FixOverspendingScreenState extends State<FixOverspendingScreen> {
                         border: OutlineInputBorder(),
                       ),
                       items: [
-                        DropdownMenuItem(value: _overspentCategory, child: Text(_overspentCategory)),
+                        DropdownMenuItem(
+                          value: _overspentCategory,
+                          child: Text(_overspentCategory),
+                        ),
                       ],
                       onChanged: (_) {},
                     ),
@@ -201,9 +203,9 @@ class _FixOverspendingScreenState extends State<FixOverspendingScreen> {
   }
 
   void _showSnack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -216,13 +218,18 @@ class _FixOverspendingScreenState extends State<FixOverspendingScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.overview),
+      bottomNavigationBar: const FinMateBottomNav(
+        active: FinMateNavItem.overview,
+      ),
       body: SafeArea(
         child: Column(
           children: [
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 420),
@@ -233,17 +240,13 @@ class _FixOverspendingScreenState extends State<FixOverspendingScreen> {
                         const SizedBox(height: 16),
                         Text(
                           'Where would you like to move money from?',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
+                          style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Select a category with available funds to cover the deficit.',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
+                          'Select a category with available budget to cover the deficit.',
+                          style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(color: AppColors.textSecondary),
                         ),
                         const SizedBox(height: 16),
@@ -259,8 +262,8 @@ class _FixOverspendingScreenState extends State<FixOverspendingScreen> {
                                 onSelect: () => _selectSource(index),
                                 onMax: () {
                                   final available = _sources[index].available;
-                                  _amountController.text =
-                                      available.toStringAsFixed(2);
+                                  _amountController.text = available
+                                      .toStringAsFixed(2);
                                 },
                               ),
                             ),
@@ -318,24 +321,23 @@ class _OverspentCard extends StatelessWidget {
                 Text(
                   'Overspent Category',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.primaryRed,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    color: AppColors.primaryRed,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Dining Out',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(fontWeight: FontWeight.w700),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
                 ),
                 Text(
                   '-\$25.00',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: AppColors.primaryRed,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    color: AppColors.primaryRed,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ],
             ),
@@ -404,18 +406,17 @@ class _SourceCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     source.name,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(fontWeight: FontWeight.w600),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
                 Text(
                   '\$${source.available.toStringAsFixed(2)} Available',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.success,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    color: AppColors.success,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 if (!selected) ...[
                   const SizedBox(width: 10),

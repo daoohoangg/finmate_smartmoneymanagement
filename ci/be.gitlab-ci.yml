@@ -5,7 +5,7 @@ test_be:
     - if: '$CI_COMMIT_BRANCH == "main"'
       changes:
         - finmate_smartmoneymanagement_be/**/*
-        - deploy/helm/**/*
+        - deploy/k8s/**/*
         - .gitlab-ci.yml
         - ci/be.gitlab-ci.yml
     - if: '$CI_PIPELINE_SOURCE == "web"'
@@ -22,10 +22,9 @@ deploy_be:
   services:
     - name: docker:24.0.7-dind
       command: ["--tls=false"]
-  resource_group: finmate-helm
+  resource_group: finmate-aks
   variables:
     ACR_LOGIN_SERVER: "${ACR_NAME}.azurecr.io"
-    RELEASE_NAME: "finmate"
     NAMESPACE: "finmate"
     IMAGE_TAG: "$CI_COMMIT_SHA"
     DOCKER_TLS_CERTDIR: ""
@@ -35,7 +34,7 @@ deploy_be:
     - if: '$CI_COMMIT_BRANCH == "main"'
       changes:
         - finmate_smartmoneymanagement_be/**/*
-        - deploy/helm/**/*
+        - deploy/k8s/**/*
         - .gitlab-ci.yml
         - ci/be.gitlab-ci.yml
     - if: '$CI_PIPELINE_SOURCE == "web"'
@@ -46,11 +45,11 @@ deploy_be:
       set -e
       if command -v apt-get >/dev/null 2>&1; then
         apt-get update -y
-        apt-get install -y curl ca-certificates docker.io python3 openssl gawk git
+        apt-get install -y curl ca-certificates docker.io python3 git
       elif command -v tdnf >/dev/null 2>&1; then
-        tdnf install -y curl ca-certificates docker-cli tar gzip python3 openssl gawk git
+        tdnf install -y curl ca-certificates docker-cli tar gzip python3 git
       elif command -v apk >/dev/null 2>&1; then
-        apk add --no-cache curl ca-certificates docker-cli python3 tar gzip openssl gawk git
+        apk add --no-cache curl ca-certificates docker-cli python3 tar gzip git
       fi
 
       download() {
@@ -73,16 +72,6 @@ deploy_be:
         download "https://download.docker.com/linux/static/stable/x86_64/docker-24.0.7.tgz" "$tmpdir/docker.tgz"
         tar -xzf "$tmpdir/docker.tgz" -C "$tmpdir"
         install -m 0755 "$tmpdir/docker/docker" /usr/local/bin/docker
-      fi
-
-      if ! command -v helm >/dev/null 2>&1; then
-        download "https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3" /tmp/get-helm-3
-        chmod +x /tmp/get-helm-3
-        if ! command -v openssl >/dev/null 2>&1 || ! command -v awk >/dev/null 2>&1; then
-          VERIFY_CHECKSUM=false /tmp/get-helm-3
-        else
-          /tmp/get-helm-3
-        fi
       fi
 
       az aks install-cli
@@ -117,15 +106,6 @@ deploy_be:
     - az aks get-credentials --resource-group "$AKS_RESOURCE_GROUP" --name "$AKS_CLUSTER_NAME" --overwrite-existing
     - |
       set -e
-
-      print_helm_failure_debug() {
-        echo "Helm upgrade failed. Collecting diagnostics..."
-        helm history "$RELEASE_NAME" -n "$NAMESPACE" || true
-        helm status "$RELEASE_NAME" -n "$NAMESPACE" || true
-        kubectl get all -n "$NAMESPACE" || true
-        kubectl describe pods -n "$NAMESPACE" || true
-        kubectl get events -n "$NAMESPACE" --sort-by=.metadata.creationTimestamp | tail -n 100 || true
-      }
 
       ensure_acr_pull_access() {
         echo "Checking AKS pull access to ACR $ACR_RESOURCE_NAME..."
@@ -175,50 +155,16 @@ deploy_be:
 
       ensure_acr_pull_access
       ensure_acr_image_exists "finmate-be" "$IMAGE_TAG"
-
-      if helm status "$RELEASE_NAME" -n "$NAMESPACE" >/dev/null 2>&1; then
-        echo "Updating existing release $RELEASE_NAME in namespace $NAMESPACE."
-        if ! helm upgrade --install "$RELEASE_NAME" deploy/helm/finmate \
-          --namespace "$NAMESPACE" \
-          --create-namespace \
-          --atomic \
-          --wait \
-          --timeout 20m \
-          --reuse-values \
-          --set image.api.repository="$ACR_LOGIN_SERVER/finmate-be" \
-          --set image.api.tag="${IMAGE_TAG}" \
-          --set-string api.secret.data.DB_PASSWORD="$DB_PASSWORD" \
-          --set-string api.secret.data.CLOUD_API_KEY="$CLOUD_API_KEY" \
-          --set-string api.secret.data.CLOUD_API_SECRET="$CLOUD_API_SECRET" \
-          --set-string api.secret.data.JWT_SECRET="$JWT_SECRET" \
-          --set-string api.secret.data.GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID"; then
-          print_helm_failure_debug
-          exit 1
-        fi
-      else
-        echo "Release $RELEASE_NAME not found in namespace $NAMESPACE (initial install)."
-        if [ -z "$WEB_IMAGE_TAG" ]; then
-          echo "WEB_IMAGE_TAG is required for initial install because this chart deploys both api and web."
-          echo "Set WEB_IMAGE_TAG to an existing finmate-web image tag, or run deploy_flutter first."
-          exit 1
-        fi
-        ensure_acr_image_exists "finmate-web" "$WEB_IMAGE_TAG"
-        if ! helm upgrade --install "$RELEASE_NAME" deploy/helm/finmate \
-          --namespace "$NAMESPACE" \
-          --create-namespace \
-          --atomic \
-          --wait \
-          --timeout 20m \
-          --set image.web.repository="$ACR_LOGIN_SERVER/finmate-web" \
-          --set image.web.tag="${WEB_IMAGE_TAG}" \
-          --set image.api.repository="$ACR_LOGIN_SERVER/finmate-be" \
-          --set image.api.tag="${IMAGE_TAG}" \
-          --set-string api.secret.data.DB_PASSWORD="$DB_PASSWORD" \
-          --set-string api.secret.data.CLOUD_API_KEY="$CLOUD_API_KEY" \
-          --set-string api.secret.data.CLOUD_API_SECRET="$CLOUD_API_SECRET" \
-          --set-string api.secret.data.JWT_SECRET="$JWT_SECRET" \
-          --set-string api.secret.data.GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID"; then
-          print_helm_failure_debug
-          exit 1
-        fi
-      fi
+      kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+      kubectl create secret generic finmate-api-secret \
+        --namespace "$NAMESPACE" \
+        --from-literal=DB_PASSWORD="$DB_PASSWORD" \
+        --from-literal=CLOUD_API_KEY="$CLOUD_API_KEY" \
+        --from-literal=CLOUD_API_SECRET="$CLOUD_API_SECRET" \
+        --from-literal=JWT_SECRET="$JWT_SECRET" \
+        --from-literal=GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID" \
+        --dry-run=client -o yaml | kubectl apply -f -
+      API_IMAGE="$ACR_LOGIN_SERVER/finmate-be:${IMAGE_TAG}"
+      sed "s|__API_IMAGE__|${API_IMAGE}|g" deploy/k8s/api-deployment.yaml | kubectl apply -n "$NAMESPACE" -f -
+      kubectl apply -n "$NAMESPACE" -f deploy/k8s/api-service.yaml
+      kubectl rollout status deployment/finmate-api -n "$NAMESPACE" --timeout=5m

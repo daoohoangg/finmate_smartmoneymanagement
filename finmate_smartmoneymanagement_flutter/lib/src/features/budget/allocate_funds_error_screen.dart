@@ -13,13 +13,15 @@ class AllocateFundsErrorScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.page,
       appBar: AppBar(
-        title: const Text('Allocate Funds'),
+        title: const Text('Allocate Budget'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new),
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.overview),
+      bottomNavigationBar: const FinMateBottomNav(
+        active: FinMateNavItem.overview,
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -33,15 +35,14 @@ class AllocateFundsErrorScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   Text(
                     'Categories',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(fontWeight: FontWeight.w600),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   _ErrorRow(
                     title: 'Travel',
-                    message: 'Insufficient funds to allocate',
+                    message: 'Insufficient budget to allocate',
                     amount: '3.500.000',
                   ),
                   const SizedBox(height: 10),
@@ -97,18 +98,17 @@ class _ErrorHeader extends StatelessWidget {
         children: [
           Text(
             '3.000.000 VND',
-            style: Theme.of(context)
-                .textTheme
-                .headlineSmall
-                ?.copyWith(color: Colors.white, fontWeight: FontWeight.w700),
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             'Available to allocate',
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: Colors.white70),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: Colors.white70),
           ),
         ],
       ),
@@ -144,10 +144,9 @@ class _ErrorRow extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(fontWeight: FontWeight.w600),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                 ),
               ),
               Container(
@@ -158,10 +157,9 @@ class _ErrorRow extends StatelessWidget {
                 ),
                 child: Text(
                   'VND',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: AppColors.textSecondary),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ),
             ],
@@ -185,14 +183,17 @@ class _ErrorRow extends StatelessWidget {
           const SizedBox(height: 6),
           Row(
             children: [
-              const Icon(Icons.error_outline, color: AppColors.primaryRed, size: 16),
+              const Icon(
+                Icons.error_outline,
+                color: AppColors.primaryRed,
+                size: 16,
+              ),
               const SizedBox(width: 6),
               Text(
                 message,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: AppColors.primaryRed),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppColors.primaryRed),
               ),
             ],
           ),
@@ -221,18 +222,16 @@ class _NormalRow extends StatelessWidget {
           Expanded(
             child: Text(
               title,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(fontWeight: FontWeight.w600),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
             ),
           ),
           Text(
             'Allocate',
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: AppColors.textSecondary),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
           ),
         ],
       ),

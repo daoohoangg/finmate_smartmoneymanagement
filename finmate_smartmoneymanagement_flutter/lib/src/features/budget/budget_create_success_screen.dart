@@ -13,7 +13,7 @@ class BudgetCreateSuccessScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.page,
       appBar: AppBar(
-        title: const Text('Create Budget'),
+        title: const Text('Create Funds'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new),
           onPressed: () => Navigator.pop(context),
@@ -25,7 +25,9 @@ class BudgetCreateSuccessScreen extends StatelessWidget {
           ),
         ],
       ),
-      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.overview),
+      bottomNavigationBar: const FinMateBottomNav(
+        active: FinMateNavItem.overview,
+      ),
       body: SafeArea(
         child: Stack(
           children: [
@@ -39,21 +41,19 @@ class BudgetCreateSuccessScreen extends StatelessWidget {
                     children: [
                       Text(
                         'Set your limits',
-                        style: Theme.of(context)
-                            .textTheme
-                            .headlineSmall
-                            ?.copyWith(fontSize: 22),
+                        style: Theme.of(
+                          context,
+                        ).textTheme.headlineSmall?.copyWith(fontSize: 22),
                       ),
                       const SizedBox(height: 6),
                       Text(
                         'Fill in the details below to track your spending.',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(color: AppColors.textSecondary),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                       const SizedBox(height: 16),
-                      _FormField(label: 'Budget Name', value: 'Groceries'),
+                      _FormField(label: 'Funds Name', value: 'Groceries'),
                       const SizedBox(height: 12),
                       _FormField(label: 'Amount', value: '\$ 500.00'),
                       const SizedBox(height: 12),
@@ -73,7 +73,7 @@ class BudgetCreateSuccessScreen extends StatelessWidget {
                               borderRadius: BorderRadius.circular(14),
                             ),
                           ),
-                          child: const Text('Save Budget'),
+                          child: const Text('Save Funds'),
                         ),
                       ),
                       const SizedBox(height: 80),
@@ -113,10 +113,9 @@ class _FormField extends StatelessWidget {
       children: [
         Text(
           label,
-          style: Theme.of(context)
-              .textTheme
-              .bodySmall
-              ?.copyWith(fontWeight: FontWeight.w600),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 6),
         Container(
@@ -128,9 +127,9 @@ class _FormField extends StatelessWidget {
           ),
           child: Text(
             value,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
           ),
         ),
       ],
@@ -151,10 +150,9 @@ class _DropdownField extends StatelessWidget {
       children: [
         Text(
           label,
-          style: Theme.of(context)
-              .textTheme
-              .bodySmall
-              ?.copyWith(fontWeight: FontWeight.w600),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 6),
         Container(
@@ -169,10 +167,9 @@ class _DropdownField extends StatelessWidget {
               Expanded(
                 child: Text(
                   value,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: AppColors.textSecondary),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ),
               const Icon(Icons.expand_more, color: AppColors.textMuted),
@@ -207,11 +204,10 @@ class _SuccessToast extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Budget created successfully.',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: Colors.white),
+              'Funds created successfully.',
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: Colors.white),
             ),
           ),
           const Icon(Icons.close, color: Colors.white54, size: 16),

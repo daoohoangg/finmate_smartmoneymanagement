@@ -52,11 +52,15 @@ class CategoryService {
     return Category.fromJson(data as Map<String, dynamic>);
   }
 
+  Future<void> deleteCategory(int categoryId) async {
+    await _client.delete('/api/categories/$categoryId');
+  }
+
   List<Category> _parseList(dynamic data) {
     if (data is List) {
       return data
-          .whereType<Map<String, dynamic>>()
-          .map(Category.fromJson)
+          .whereType<Map>()
+          .map((item) => Category.fromJson(Map<String, dynamic>.from(item)))
           .toList();
     }
     return [];

@@ -2,6 +2,7 @@ package com.finmate.service;
 
 import com.finmate.dto.request.BudgetRequest;
 import com.finmate.dto.request.BudgetReassignRequest;
+import com.finmate.dto.request.BudgetContributionRequest;
 import com.finmate.dto.response.BudgetResponse;
 
 import java.util.List;
@@ -19,4 +20,6 @@ public interface BudgetService {
     void deleteBudget(Long id);
 
     BudgetResponse reassignBudget(UUID userId, BudgetReassignRequest request);
+
+    BudgetResponse addContribution(UUID userId, Long budgetId, BudgetContributionRequest request);
 }

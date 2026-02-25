@@ -2,24 +2,141 @@ import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
 
-import '../ai_coach/ai_coach_intro_screen.dart';
 import '../budget/allocate_funds_screen.dart';
 import '../budget/budget_create_screen.dart';
+import '../budget/budget_status_track_screen.dart';
 import '../categories/manage_categories_screen.dart';
+import '../planning/manual_allocation_screen.dart';
 import '../planning/plan_recommendation_screen.dart';
 import '../recurring/recurring_setup_screen.dart';
 import '../settings/settings_screen.dart';
 import '../transactions/add_transaction_screen.dart';
-import '../transactions/transactions_list_screen.dart';
+import '../transactions/services/transaction_service.dart';
 import '../../shared/widgets/finmate_bottom_nav.dart';
 
-class MonthlyDashboardScreen extends StatelessWidget {
+class MonthlyDashboardScreen extends StatefulWidget {
   const MonthlyDashboardScreen({super.key});
 
   static const String routeName = '/dashboard/monthly';
 
   @override
+  State<MonthlyDashboardScreen> createState() => _MonthlyDashboardScreenState();
+}
+
+class _MonthlyDashboardScreenState extends State<MonthlyDashboardScreen> {
+  final TransactionService _transactionService = TransactionService();
+
+  bool _loadingTotals = true;
+  double _totalIncome = 0;
+  double _totalExpense = 0;
+  double _todayIncome = 0;
+  double _todayExpense = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTotals();
+  }
+
+  Future<void> _loadTotals() async {
+    setState(() {
+      _loadingTotals = true;
+    });
+    try {
+      final transactions = await _transactionService.getTransactions();
+      final now = DateTime.now();
+      double income = 0;
+      double expense = 0;
+      double todayIncome = 0;
+      double todayExpense = 0;
+      for (final transaction in transactions) {
+        final type = transaction['type']?.toString().toUpperCase();
+        final amount = _toDouble(transaction['amount']);
+        final txDate = _parseDate(transaction['transactionDate']);
+        final isToday = txDate != null && _isSameDate(txDate.toLocal(), now);
+        if (type == 'INCOME') {
+          income += amount;
+          if (isToday) {
+            todayIncome += amount;
+          }
+        } else if (type == 'EXPENSE') {
+          expense += amount;
+          if (isToday) {
+            todayExpense += amount;
+          }
+        }
+      }
+      if (!mounted) return;
+      setState(() {
+        _totalIncome = income;
+        _totalExpense = expense;
+        _todayIncome = todayIncome;
+        _todayExpense = todayExpense;
+        _loadingTotals = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _totalIncome = 0;
+        _totalExpense = 0;
+        _todayIncome = 0;
+        _todayExpense = 0;
+        _loadingTotals = false;
+      });
+    }
+  }
+
+  double _toDouble(Object? value) {
+    if (value is num) {
+      return value.toDouble();
+    }
+    return double.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  double _safeDisplayAmount(Object? value) {
+    if (value is num) {
+      final parsed = value.toDouble();
+      if (parsed.isFinite && !parsed.isNaN) {
+        return parsed;
+      }
+    }
+    return 0;
+  }
+
+  DateTime? _parseDate(Object? value) {
+    final text = value?.toString();
+    if (text == null || text.isEmpty) {
+      return null;
+    }
+    return DateTime.tryParse(text);
+  }
+
+  bool _isSameDate(DateTime first, DateTime second) {
+    return first.year == second.year &&
+        first.month == second.month &&
+        first.day == second.day;
+  }
+
+  String _formatVnd(Object? amountValue) {
+    final amount = _safeDisplayAmount(amountValue);
+    final rounded = amount.round();
+    final absolute = rounded.abs().toString();
+    final separated = absolute.replaceAllMapped(
+      RegExp(r'\B(?=(\d{3})+(?!\d))'),
+      (_) => ',',
+    );
+    final prefix = rounded < 0 ? '-' : '';
+    return '$prefix$separatedđ';
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final totalBalance =
+        _safeDisplayAmount(_totalIncome) - _safeDisplayAmount(_totalExpense);
+    final balanceText = _loadingTotals ? '--' : _formatVnd(totalBalance);
+    final incomeText = _loadingTotals ? '--' : _formatVnd(_todayIncome);
+    final expenseText = _loadingTotals ? '--' : _formatVnd(_todayExpense);
+
     return Scaffold(
       backgroundColor: _HomeColors.background,
       body: SafeArea(
@@ -32,18 +149,21 @@ class MonthlyDashboardScreen extends StatelessWidget {
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 420),
-                    child: const Column(
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _BalanceHeader(),
-                        SizedBox(height: 18),
-                        _WalletCard(),
-                        SizedBox(height: 22),
-                        _QuickActionsGrid(),
-                        SizedBox(height: 22),
-                        _SummaryRow(),
-                        SizedBox(height: 22),
-                        _GoalsSection(),
+                        _BalanceHeader(balanceText: balanceText),
+                        const SizedBox(height: 18),
+                        _WalletCard(balanceText: balanceText),
+                        const SizedBox(height: 22),
+                        _QuickActionsGrid(onDataChanged: _loadTotals),
+                        const SizedBox(height: 22),
+                        _SummaryRow(
+                          expenseText: expenseText,
+                          incomeText: incomeText,
+                        ),
+                        const SizedBox(height: 22),
+                        const _GoalsSection(),
                       ],
                     ),
                   ),
@@ -59,7 +179,9 @@ class MonthlyDashboardScreen extends StatelessWidget {
 }
 
 class _BalanceHeader extends StatelessWidget {
-  const _BalanceHeader();
+  const _BalanceHeader({required this.balanceText});
+
+  final String balanceText;
 
   @override
   Widget build(BuildContext context) {
@@ -73,12 +195,12 @@ class _BalanceHeader extends StatelessWidget {
               Row(
                 children: [
                   Text(
-                    '9,955,500đ',
+                    balanceText,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: _HomeColors.textPrimary,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w700,
-                        ),
+                      color: _HomeColors.textPrimary,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   const SizedBox(width: 8),
                   const Icon(
@@ -92,9 +214,9 @@ class _BalanceHeader extends StatelessWidget {
               Text(
                 'Total balance',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: _HomeColors.textMuted,
-                      fontSize: 13,
-                    ),
+                  color: _HomeColors.textMuted,
+                  fontSize: 13,
+                ),
               ),
             ],
           ),
@@ -111,14 +233,18 @@ class _BalanceHeader extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.swap_horiz, color: _HomeColors.textPrimary, size: 18),
+                const Icon(
+                  Icons.swap_horiz,
+                  color: _HomeColors.textPrimary,
+                  size: 18,
+                ),
                 const SizedBox(width: 6),
                 Text(
                   'Switch wallet',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: _HomeColors.textPrimary,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    color: _HomeColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
@@ -130,7 +256,9 @@ class _BalanceHeader extends StatelessWidget {
 }
 
 class _WalletCard extends StatelessWidget {
-  const _WalletCard();
+  const _WalletCard({required this.balanceText});
+
+  final String balanceText;
 
   @override
   Widget build(BuildContext context) {
@@ -180,9 +308,9 @@ class _WalletCard extends StatelessWidget {
                   Text(
                     'Personal',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const Spacer(),
                   const Icon(Icons.visibility, color: Colors.white70, size: 18),
@@ -190,29 +318,37 @@ class _WalletCard extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                '9,955,500đ',
+                balanceText,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: Colors.white,
-                      fontSize: 30,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  color: Colors.white,
+                  fontSize: 30,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: 12),
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: _HomeColors.success,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.trending_up, color: Colors.white, size: 14),
+                        const Icon(
+                          Icons.trending_up,
+                          color: Colors.white,
+                          size: 14,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           '+100.0%',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -223,9 +359,9 @@ class _WalletCard extends StatelessWidget {
                   const SizedBox(width: 10),
                   Text(
                     'vs last month',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.white70,
-                        ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: Colors.white70),
                   ),
                 ],
               ),
@@ -238,25 +374,38 @@ class _WalletCard extends StatelessWidget {
 }
 
 class _QuickActionsGrid extends StatelessWidget {
-  const _QuickActionsGrid();
+  const _QuickActionsGrid({this.onDataChanged});
+
+  final Future<void> Function()? onDataChanged;
 
   @override
   Widget build(BuildContext context) {
-    void openAddTransaction({required bool isExpense}) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => AddTransactionScreen(initialIsExpense: isExpense),
+    Future<void> openRoute(Future<Object?> route) async {
+      await route;
+      if (onDataChanged != null) {
+        await onDataChanged!.call();
+      }
+    }
+
+    Future<void> openAddTransaction({required bool isExpense}) async {
+      await openRoute(
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AddTransactionScreen(initialIsExpense: isExpense),
+          ),
         ),
       );
     }
 
     final actions = [
       _ActionData(
-        label: 'Voice\nentry',
-        icon: Icons.mic_rounded,
+        label: 'Manual\nallocation',
+        icon: Icons.pie_chart_outline_rounded,
         colors: const [Color(0xFFCE3CC5), Color(0xFF7D5CFF)],
-        onTap: () => Navigator.pushNamed(context, AiCoachIntroScreen.routeName),
+        onTap: () => openRoute(
+          Navigator.pushNamed(context, ManualAllocationScreen.routeName),
+        ),
       ),
       _ActionData(
         label: 'Scan\nreceipt',
@@ -271,36 +420,45 @@ class _QuickActionsGrid extends StatelessWidget {
         onTap: () => openAddTransaction(isExpense: true),
       ),
       _ActionData(
-        label: 'Create\nBudget',
+        label: 'Create\nFunds',
         icon: Icons.account_balance_wallet_outlined,
         colors: const [Color(0xFF12D08E), Color(0xFF11B86A)],
-        onTap: () => Navigator.pushNamed(context, BudgetCreateScreen.routeName),
+        onTap: () => openRoute(
+          Navigator.pushNamed(context, BudgetCreateScreen.routeName),
+        ),
       ),
       _ActionData(
         label: 'Manage\ncategories',
         icon: Icons.settings,
         colors: const [Color(0xFF7A5CFF), Color(0xFF4F8DFF)],
-        onTap: () => Navigator.pushNamed(context, ManageCategoriesScreen.routeName),
+        onTap: () => openRoute(
+          Navigator.pushNamed(context, ManageCategoriesScreen.routeName),
+        ),
       ),
       _ActionData(
         label: 'Transfer',
         icon: Icons.swap_horiz,
         colors: const [Color(0xFF6E63FF), Color(0xFF4B4FF5)],
-        onTap: () => Navigator.pushNamed(context, AllocateFundsScreen.routeName),
+        onTap: () => openRoute(
+          Navigator.pushNamed(context, AllocateFundsScreen.routeName),
+        ),
       ),
       _ActionData(
-        label: 'Debt\nbook',
+        label: 'Funds\nstatus',
         icon: Icons.receipt_long,
         colors: const [Color(0xFFFFA630), Color(0xFFFF7C1F)],
-        badge: 'BETA',
-        onTap: () => Navigator.pushNamed(context, TransactionsListScreen.routeName),
+        onTap: () => openRoute(
+          Navigator.pushNamed(context, BudgetStatusTrackScreen.routeName),
+        ),
       ),
       _ActionData(
         label: 'Recurring\ntransactions',
         icon: Icons.autorenew,
         colors: const [Color(0xFF9D6BFF), Color(0xFF6F5CFF)],
         badge: 'BETA',
-        onTap: () => Navigator.pushNamed(context, RecurringSetupScreen.routeName),
+        onTap: () => openRoute(
+          Navigator.pushNamed(context, RecurringSetupScreen.routeName),
+        ),
       ),
     ];
 
@@ -323,32 +481,35 @@ class _QuickActionsGrid extends StatelessWidget {
 }
 
 class _SummaryRow extends StatelessWidget {
-  const _SummaryRow();
+  const _SummaryRow({required this.expenseText, required this.incomeText});
+
+  final String expenseText;
+  final String incomeText;
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      children: const [
+      children: [
         Expanded(
           child: _MiniSummaryCard(
             title: 'Expenses',
             subtitle: 'Today',
-            amount: '45,000đ',
+            amount: expenseText,
             amountColor: _HomeColors.danger,
             icon: Icons.trending_down,
-            iconBg: Color(0xFF3B1F2A),
+            iconBg: const Color(0xFF3B1F2A),
             iconColor: _HomeColors.danger,
           ),
         ),
-        SizedBox(width: 14),
+        const SizedBox(width: 14),
         Expanded(
           child: _MiniSummaryCard(
             title: 'Income',
             subtitle: 'Today',
-            amount: '10,000,500đ',
+            amount: incomeText,
             amountColor: _HomeColors.success,
             icon: Icons.trending_up,
-            iconBg: Color(0xFF20392E),
+            iconBg: const Color(0xFF20392E),
             iconColor: _HomeColors.success,
           ),
         ),
@@ -406,16 +567,16 @@ class _MiniSummaryCard extends StatelessWidget {
                   Text(
                     title,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: _HomeColors.textPrimary,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      color: _HomeColors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: _HomeColors.textMuted,
-                        ),
+                      color: _HomeColors.textMuted,
+                    ),
                   ),
                 ],
               ),
@@ -425,10 +586,10 @@ class _MiniSummaryCard extends StatelessWidget {
           Text(
             amount,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: amountColor,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                ),
+              color: amountColor,
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),
@@ -449,13 +610,16 @@ class _GoalsSection extends StatelessWidget {
             Text(
               'Goals',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: _HomeColors.textPrimary,
-                    fontWeight: FontWeight.w600,
-                  ),
+                color: _HomeColors.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
             ),
             const Spacer(),
             GestureDetector(
-              onTap: () => Navigator.pushNamed(context, PlanRecommendationScreen.routeName),
+              onTap: () => Navigator.pushNamed(
+                context,
+                PlanRecommendationScreen.routeName,
+              ),
               child: Container(
                 width: 34,
                 height: 34,
@@ -464,14 +628,19 @@ class _GoalsSection extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: _HomeColors.border),
                 ),
-                child: const Icon(Icons.add, color: _HomeColors.textPrimary, size: 18),
+                child: const Icon(
+                  Icons.add,
+                  color: _HomeColors.textPrimary,
+                  size: 18,
+                ),
               ),
             ),
           ],
         ),
         const SizedBox(height: 12),
         GestureDetector(
-          onTap: () => Navigator.pushNamed(context, PlanRecommendationScreen.routeName),
+          onTap: () =>
+              Navigator.pushNamed(context, PlanRecommendationScreen.routeName),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             decoration: BoxDecoration(
@@ -488,7 +657,11 @@ class _GoalsSection extends StatelessWidget {
                     color: _HomeColors.cardAccent,
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: const Icon(Icons.flag, color: _HomeColors.textPrimary, size: 18),
+                  child: const Icon(
+                    Icons.flag,
+                    color: _HomeColors.textPrimary,
+                    size: 18,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -498,16 +671,16 @@ class _GoalsSection extends StatelessWidget {
                       Text(
                         'Savings goal',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: _HomeColors.textPrimary,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          color: _HomeColors.textPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         'Starting from 2,000,000đ',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: _HomeColors.textMuted,
-                            ),
+                          color: _HomeColors.textMuted,
+                        ),
                       ),
                     ],
                   ),
@@ -521,7 +694,6 @@ class _GoalsSection extends StatelessWidget {
     );
   }
 }
-
 
 class _ActionItem extends StatelessWidget {
   const _ActionItem({required this.data});
@@ -564,7 +736,10 @@ class _ActionItem extends StatelessWidget {
                   top: -6,
                   right: -8,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: _HomeColors.badge,
                       borderRadius: BorderRadius.circular(10),
@@ -572,10 +747,10 @@ class _ActionItem extends StatelessWidget {
                     child: Text(
                       data.badge!,
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: _HomeColors.badgeText,
-                            fontSize: 9,
-                            fontWeight: FontWeight.w700,
-                          ),
+                        color: _HomeColors.badgeText,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ),
@@ -588,10 +763,10 @@ class _ActionItem extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: _HomeColors.textPrimary,
-                  fontSize: 11,
-                  height: 1.2,
-                ),
+              color: _HomeColors.textPrimary,
+              fontSize: 11,
+              height: 1.2,
+            ),
           ),
         ],
       ),

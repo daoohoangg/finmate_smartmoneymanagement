@@ -13,13 +13,15 @@ class AllocateFundsScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.page,
       appBar: AppBar(
-        title: const Text('Allocate Funds'),
+        title: const Text('Allocate Budget'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new),
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.overview),
+      bottomNavigationBar: const FinMateBottomNav(
+        active: FinMateNavItem.overview,
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -31,10 +33,9 @@ class AllocateFundsScreen extends StatelessWidget {
                 children: [
                   Text(
                     'Assign your available money to categories until you reach zero.',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: AppColors.textSecondary),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                   const SizedBox(height: 14),
                   _AvailableCard(),
@@ -43,10 +44,9 @@ class AllocateFundsScreen extends StatelessWidget {
                     children: [
                       Text(
                         'Categories',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(fontWeight: FontWeight.w600),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       const Spacer(),
                       TextButton(
@@ -127,18 +127,17 @@ class _AvailableCard extends StatelessWidget {
         children: [
           Text(
             'Available to allocate',
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: AppColors.textSecondary),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 8),
           Text(
             '3.000.000 VND',
-            style: Theme.of(context)
-                .textTheme
-                .headlineSmall
-                ?.copyWith(color: AppColors.primaryRed, fontWeight: FontWeight.w700),
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              color: AppColors.primaryRed,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: 8),
           ClipRRect(
@@ -147,7 +146,9 @@ class _AvailableCard extends StatelessWidget {
               value: 0.0,
               minHeight: 6,
               backgroundColor: AppColors.border,
-              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryRed),
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                AppColors.primaryRed,
+              ),
             ),
           ),
         ],
@@ -195,18 +196,16 @@ class _AllocateRow extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(fontWeight: FontWeight.w600),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   'Allocated: $allocated VND',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: AppColors.textSecondary),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ),

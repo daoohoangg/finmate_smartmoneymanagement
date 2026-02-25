@@ -138,8 +138,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
           decoration: const InputDecoration(hintText: 'Full name'),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Save')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Save'),
+          ),
         ],
       ),
     );
@@ -165,7 +171,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _uploadAvatar() async {
     final picker = ImagePicker();
-    final image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    final image = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+    );
     if (image == null) return;
     setState(() => _isLoading = true);
     try {
@@ -298,9 +307,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showSnack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -313,7 +322,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.settings),
+      bottomNavigationBar: const FinMateBottomNav(
+        active: FinMateNavItem.settings,
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -347,7 +358,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           onTap: _isLoading ? null : _uploadAvatar,
                           child: CircleAvatar(
                             radius: 24,
-                            backgroundColor: AppColors.primaryBlue.withOpacity(0.12),
+                            backgroundColor: AppColors.primaryBlue.withOpacity(
+                              0.12,
+                            ),
                             backgroundImage: _avatarBytes != null
                                 ? MemoryImage(_avatarBytes!)
                                 : null,
@@ -366,24 +379,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             children: [
                               Text(
                                 _fullName,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
+                                style: Theme.of(context).textTheme.bodyMedium
                                     ?.copyWith(fontWeight: FontWeight.w600),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 _email,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
+                                style: Theme.of(context).textTheme.bodySmall
                                     ?.copyWith(color: AppColors.textSecondary),
                               ),
                             ],
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.edit, color: AppColors.textMuted),
+                          icon: const Icon(
+                            Icons.edit,
+                            color: AppColors.textMuted,
+                          ),
                           onPressed: _isLoading ? null : _changeName,
                         ),
                       ],
@@ -419,9 +431,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const SizedBox(width: 12),
                         Text(
                           'Dark Mode',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
+                          style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(fontWeight: FontWeight.w600),
                         ),
                         const Spacer(),
@@ -480,9 +490,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   const SizedBox(height: 4),
                                   Text(
                                     'Switch between VND and USD',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall
+                                    style: Theme.of(context).textTheme.bodySmall
                                         ?.copyWith(
                                           color: AppColors.textSecondary,
                                         ),
@@ -538,7 +546,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const SizedBox(height: 10),
                         Text(
                           'Current rate: 1 USD = 25,450 VND',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
                                 color: AppColors.primaryRed,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -674,9 +683,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               value: _roundingMode,
                               underline: const SizedBox.shrink(),
                               items: const [
-                                DropdownMenuItem(value: 'HALF_UP', child: Text('HALF_UP')),
-                                DropdownMenuItem(value: 'UP', child: Text('UP')),
-                                DropdownMenuItem(value: 'DOWN', child: Text('DOWN')),
+                                DropdownMenuItem(
+                                  value: 'HALF_UP',
+                                  child: Text('HALF_UP'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'UP',
+                                  child: Text('UP'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'DOWN',
+                                  child: Text('DOWN'),
+                                ),
                               ],
                               onChanged: (value) {
                                 if (value == null) return;
@@ -751,7 +769,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   const SizedBox(height: 18),
-                  const SectionLabel(text: 'BUDGET SCREENS'),
+                  const SectionLabel(text: 'FUNDS SCREENS'),
                   const SizedBox(height: 8),
                   Container(
                     decoration: BoxDecoration(
@@ -763,70 +781,70 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       children: [
                         _SettingsItem(
                           icon: Icons.add_chart,
-                          label: 'Create Budget',
+                          label: 'Create Funds',
                           iconColor: AppColors.primaryBlue,
                           onTap: _openBudgetCreate,
                         ),
                         const Divider(height: 1, color: AppColors.border),
                         _SettingsItem(
                           icon: Icons.warning_amber_rounded,
-                          label: 'Create Budget (Warning)',
+                          label: 'Create Funds (Warning)',
                           iconColor: AppColors.primaryBlue,
                           onTap: _openBudgetCreateWarning,
                         ),
                         const Divider(height: 1, color: AppColors.border),
                         _SettingsItem(
                           icon: Icons.check_circle_outline,
-                          label: 'Create Budget (Success)',
+                          label: 'Create Funds (Success)',
                           iconColor: AppColors.primaryBlue,
                           onTap: _openBudgetCreateSuccess,
                         ),
                         const Divider(height: 1, color: AppColors.border),
                         _SettingsItem(
                           icon: Icons.timeline,
-                          label: 'Budget Status (On Track)',
+                          label: 'Funds Status (On Track)',
                           iconColor: AppColors.primaryBlue,
                           onTap: _openBudgetTrack,
                         ),
                         const Divider(height: 1, color: AppColors.border),
                         _SettingsItem(
                           icon: Icons.warning_amber,
-                          label: 'Budget Status (Warning)',
+                          label: 'Funds Status (Warning)',
                           iconColor: AppColors.primaryBlue,
                           onTap: _openBudgetWarning,
                         ),
                         const Divider(height: 1, color: AppColors.border),
                         _SettingsItem(
                           icon: Icons.report,
-                          label: 'Budget Status (Exceeded)',
+                          label: 'Funds Status (Exceeded)',
                           iconColor: AppColors.primaryBlue,
                           onTap: _openBudgetExceeded,
                         ),
                         const Divider(height: 1, color: AppColors.border),
                         _SettingsItem(
                           icon: Icons.inbox_outlined,
-                          label: 'Budget Status (Empty)',
+                          label: 'Funds Status (Empty)',
                           iconColor: AppColors.primaryBlue,
                           onTap: _openBudgetEmpty,
                         ),
                         const Divider(height: 1, color: AppColors.border),
                         _SettingsItem(
                           icon: Icons.account_balance_wallet_outlined,
-                          label: 'Allocate Funds',
+                          label: 'Allocate Budget',
                           iconColor: AppColors.primaryBlue,
                           onTap: _openAllocateFunds,
                         ),
                         const Divider(height: 1, color: AppColors.border),
                         _SettingsItem(
                           icon: Icons.error_outline,
-                          label: 'Allocate Funds (Error)',
+                          label: 'Allocate Budget (Error)',
                           iconColor: AppColors.primaryBlue,
                           onTap: _openAllocateFundsError,
                         ),
                         const Divider(height: 1, color: AppColors.border),
                         _SettingsItem(
                           icon: Icons.check_circle,
-                          label: 'Allocate Funds (Done)',
+                          label: 'Allocate Budget (Done)',
                           iconColor: AppColors.primaryBlue,
                           onTap: _openAllocateFundsDone,
                         ),
@@ -987,10 +1005,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Center(
                     child: Text(
                       'Finance Tracker v2.4.0 (Build 82)',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: AppColors.textMuted),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.textMuted,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -1031,14 +1048,12 @@ class _SettingsItem extends StatelessWidget {
       ),
       title: Text(
         label,
-        style: Theme.of(context)
-            .textTheme
-            .bodyMedium
-            ?.copyWith(fontWeight: FontWeight.w600),
+        style: Theme.of(
+          context,
+        ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
       ),
       trailing: const Icon(Icons.chevron_right, color: AppColors.textMuted),
       onTap: onTap,
     );
   }
 }
-

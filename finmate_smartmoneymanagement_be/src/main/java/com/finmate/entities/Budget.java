@@ -26,8 +26,20 @@ public class Budget {
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
 
+    @Column(name = "name", length = 150)
+    private String name;
+
     @Column(name = "amount_limit", nullable = false, precision = 19, scale = 2)
     private BigDecimal amountLimit;
+
+    @Column(
+            name = "saved_amount",
+            nullable = false,
+            precision = 19,
+            scale = 2,
+            columnDefinition = "DECIMAL(19,2) NOT NULL DEFAULT 0"
+    )
+    private BigDecimal savedAmount = BigDecimal.ZERO;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)

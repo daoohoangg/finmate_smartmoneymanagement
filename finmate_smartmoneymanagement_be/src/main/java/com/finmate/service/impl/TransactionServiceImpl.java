@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -61,9 +62,10 @@ public class TransactionServiceImpl implements TransactionService {
                 request.getTransactionDate() != null ? request.getTransactionDate() : LocalDateTime.now());
         transaction.setImageUrl(request.getImageUrl());
 
+        Long categoryId = normalizeCategoryId(userId, user, request);
         Category category = null;
-        if (request.getCategoryId() != null) {
-            category = categoryRepository.findById(request.getCategoryId())
+        if (categoryId != null) {
+            category = categoryRepository.findById(categoryId)
                     .orElseThrow(() -> new RuntimeException("Category not found"));
             validateCategoryForTransaction(userId, request.getType(), category);
             transaction.setCategory(category);
@@ -98,10 +100,17 @@ public class TransactionServiceImpl implements TransactionService {
             if (category == null) {
                 throw new RuntimeException("Category is required for expense");
             }
-            ensureBudgetAvailable(userId, category.getId(), request.getAmount(), null);
+            if (transaction.getBudget() == null) {
+                ensureBudgetAvailable(userId, category.getId(), request.getAmount(), null);
+            }
             ensureSufficientBalance(wallet, request.getAmount());
             wallet.setBalance(wallet.getBalance().subtract(request.getAmount()));
             walletRepository.save(wallet);
+            if (transaction.getBudget() != null) {
+                applyFundContributionIfNeeded(transaction);
+            } else {
+                applyFundExpenseIfExists(userId, category.getId(), request.getAmount());
+            }
         } else if (request.getType() == TransactionType.INCOME) {
             wallet.setBalance(wallet.getBalance().add(request.getAmount()));
             walletRepository.save(wallet);
@@ -205,9 +214,10 @@ public class TransactionServiceImpl implements TransactionService {
         }
         existing.setWallet(wallet);
 
+        Long categoryId = normalizeCategoryId(existing.getUser().getId(), existing.getUser(), request);
         Category category = null;
-        if (request.getCategoryId() != null) {
-            category = categoryRepository.findById(request.getCategoryId())
+        if (categoryId != null) {
+            category = categoryRepository.findById(categoryId)
                     .orElseThrow(() -> new RuntimeException("Category not found"));
             validateCategoryForTransaction(existing.getUser().getId(), request.getType(), category);
             existing.setCategory(category);
@@ -218,6 +228,14 @@ public class TransactionServiceImpl implements TransactionService {
         existing.setToWallet(null);
         existing.setSavingsGoal(null);
         existing.setInvestmentPlan(null);
+        if (request.getType() != TransactionType.EXPENSE) {
+            existing.setBudget(null);
+        } else if (existing.getBudget() != null) {
+            if (category == null ||
+                    !existing.getBudget().getCategory().getId().equals(category.getId())) {
+                existing.setBudget(null);
+            }
+        }
 
         applyTransactionEffects(existing, request, category, existing.getId());
         Transaction saved = transactionRepository.save(existing);
@@ -262,10 +280,18 @@ public class TransactionServiceImpl implements TransactionService {
             if (category.getParent() == null || categoryRepository.existsByParentId(category.getId())) {
                 throw new RuntimeException("Please select an expense subcategory");
             }
-            ensureBudgetAvailable(transaction.getUser().getId(), category.getId(), request.getAmount(), excludeTransactionId);
+            if (transaction.getBudget() == null) {
+                ensureBudgetAvailable(transaction.getUser().getId(), category.getId(), request.getAmount(),
+                        excludeTransactionId);
+            }
             ensureSufficientBalance(wallet, request.getAmount());
             wallet.setBalance(wallet.getBalance().subtract(request.getAmount()));
             walletRepository.save(wallet);
+            if (transaction.getBudget() != null) {
+                applyFundContributionIfNeeded(transaction);
+            } else {
+                applyFundExpenseIfExists(transaction.getUser().getId(), category.getId(), request.getAmount());
+            }
         } else if (request.getType() == TransactionType.INCOME) {
             wallet.setBalance(wallet.getBalance().add(request.getAmount()));
             walletRepository.save(wallet);
@@ -310,6 +336,48 @@ public class TransactionServiceImpl implements TransactionService {
         }
     }
 
+    private Long normalizeCategoryId(UUID userId, User user, TransactionRequest request) {
+        if (request.getType() != TransactionType.INCOME || request.getCategoryId() != null) {
+            return request.getCategoryId();
+        }
+        return resolveDefaultIncomeCategory(userId, user).getId();
+    }
+
+    private Category resolveDefaultIncomeCategory(UUID userId, User user) {
+        Category preferred = pickPreferredIncomeCategory(
+                categoryRepository.findByUserIdAndType(userId, CategoryType.INCOME));
+        if (preferred != null) {
+            return preferred;
+        }
+
+        List<Category> systemIncomeCategories = categoryRepository.findByUserIdIsNull().stream()
+                .filter(category -> category.getType() == CategoryType.INCOME)
+                .collect(Collectors.toList());
+        preferred = pickPreferredIncomeCategory(systemIncomeCategories);
+        if (preferred != null) {
+            return preferred;
+        }
+
+        Category fallback = new Category();
+        fallback.setUser(user);
+        fallback.setName("Income");
+        fallback.setType(CategoryType.INCOME);
+        fallback.setIsPrimary(true);
+        fallback.setIcon("payments_outlined");
+        fallback.setColor("#22C55E");
+        return categoryRepository.save(fallback);
+    }
+
+    private Category pickPreferredIncomeCategory(List<Category> categories) {
+        return categories.stream()
+                .filter(category -> category != null && category.getType() == CategoryType.INCOME)
+                .min(Comparator
+                        .comparing((Category category) -> category.getParent() != null)
+                        .thenComparing(category -> !Boolean.TRUE.equals(category.getIsPrimary()))
+                        .thenComparing(category -> category.getName() == null ? "" : category.getName().toLowerCase()))
+                .orElse(null);
+    }
+
     private void validateCategoryForTransaction(UUID userId, TransactionType transactionType, Category category) {
         if (category.getUser() != null && !category.getUser().getId().equals(userId)) {
             throw new RuntimeException("Category does not belong to user");
@@ -337,6 +405,14 @@ public class TransactionServiceImpl implements TransactionService {
         } else if (transaction.getType() == TransactionType.EXPENSE) {
             wallet.setBalance(wallet.getBalance().add(transaction.getAmount()));
             walletRepository.save(wallet);
+            if (transaction.getBudget() != null) {
+                revertFundContributionIfNeeded(transaction);
+            } else if (transaction.getCategory() != null) {
+                revertFundExpenseIfExists(
+                        transaction.getUser().getId(),
+                        transaction.getCategory().getId(),
+                        transaction.getAmount());
+            }
         } else if (transaction.getType() == TransactionType.INCOME) {
             wallet.setBalance(wallet.getBalance().subtract(transaction.getAmount()));
             walletRepository.save(wallet);
@@ -367,6 +443,50 @@ public class TransactionServiceImpl implements TransactionService {
         if (savingsGoal.getCurrentAmount().compareTo(amount) < 0) {
             throw new RuntimeException("Insufficient savings balance");
         }
+    }
+
+    private void applyFundContributionIfNeeded(Transaction transaction) {
+        Budget linkedBudget = transaction.getBudget();
+        if (linkedBudget == null) {
+            return;
+        }
+        BigDecimal currentSaved = linkedBudget.getSavedAmount() == null
+                ? BigDecimal.ZERO
+                : linkedBudget.getSavedAmount();
+        linkedBudget.setSavedAmount(currentSaved.add(transaction.getAmount()));
+        budgetRepository.save(linkedBudget);
+    }
+
+    private void revertFundContributionIfNeeded(Transaction transaction) {
+        Budget linkedBudget = transaction.getBudget();
+        if (linkedBudget == null) {
+            return;
+        }
+        BigDecimal currentSaved = linkedBudget.getSavedAmount() == null
+                ? BigDecimal.ZERO
+                : linkedBudget.getSavedAmount();
+        BigDecimal updatedSaved = currentSaved.subtract(transaction.getAmount());
+        if (updatedSaved.compareTo(BigDecimal.ZERO) < 0) {
+            updatedSaved = BigDecimal.ZERO;
+        }
+        linkedBudget.setSavedAmount(updatedSaved);
+        budgetRepository.save(linkedBudget);
+    }
+
+    private void applyFundExpenseIfExists(UUID userId, Long categoryId, BigDecimal amount) {
+        budgetRepository.findByUserIdAndCategoryId(userId, categoryId).ifPresent(budget -> {
+            BigDecimal currentSaved = budget.getSavedAmount() == null ? BigDecimal.ZERO : budget.getSavedAmount();
+            budget.setSavedAmount(currentSaved.subtract(amount));
+            budgetRepository.save(budget);
+        });
+    }
+
+    private void revertFundExpenseIfExists(UUID userId, Long categoryId, BigDecimal amount) {
+        budgetRepository.findByUserIdAndCategoryId(userId, categoryId).ifPresent(budget -> {
+            BigDecimal currentSaved = budget.getSavedAmount() == null ? BigDecimal.ZERO : budget.getSavedAmount();
+            budget.setSavedAmount(currentSaved.add(amount));
+            budgetRepository.save(budget);
+        });
     }
 
     private void ensureBudgetAvailable(UUID userId, Long categoryId, java.math.BigDecimal amount,
@@ -404,6 +524,7 @@ public class TransactionServiceImpl implements TransactionService {
         return transactions.stream()
                 .filter(t -> excludeTransactionId == null || !t.getId().equals(excludeTransactionId))
                 .filter(t -> t.getCategory() != null && t.getCategory().getId().equals(budget.getCategory().getId()))
+                .filter(t -> t.getBudget() == null)
                 .filter(t -> t.getType() == TransactionType.EXPENSE)
                 .map(Transaction::getAmount)
                 .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);

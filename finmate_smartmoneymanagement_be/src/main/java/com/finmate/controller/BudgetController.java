@@ -1,6 +1,7 @@
 package com.finmate.controller;
 
 import com.finmate.dto.request.BudgetReassignRequest;
+import com.finmate.dto.request.BudgetContributionRequest;
 import com.finmate.dto.request.BudgetRequest;
 import com.finmate.dto.response.BudgetResponse;
 import com.finmate.security.UserPrincipal;
@@ -103,6 +104,23 @@ public class BudgetController {
             @RequestBody BudgetReassignRequest request) {
         UUID resolved = UserIdResolver.resolve(userId, principal);
         BudgetResponse response = budgetService.reassignBudget(resolved, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{id}/contributions")
+    @Operation(summary = "Add contribution to fund", description = "Adds money from a wallet to a fund, records an expense transaction, and updates saving progress")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Contribution added successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid data"),
+            @ApiResponse(responseCode = "404", description = "Budget not found")
+    })
+    public ResponseEntity<BudgetResponse> addContribution(
+            @Parameter(description = "Budget ID", required = true) @PathVariable Long id,
+            @Parameter(description = "User ID", required = false) @RequestHeader(value = "User-Id", required = false) UUID userId,
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestBody BudgetContributionRequest request) {
+        UUID resolved = UserIdResolver.resolve(userId, principal);
+        BudgetResponse response = budgetService.addContribution(resolved, id, request);
         return ResponseEntity.ok(response);
     }
 }

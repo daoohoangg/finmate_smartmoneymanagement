@@ -42,7 +42,10 @@ class _LoginScreenState extends State<LoginScreen> {
     }
     setState(() => _isLoading = true);
     try {
-      final response = await _authService.login(email: email, password: password);
+      final response = await _authService.login(
+        email: email,
+        password: password,
+      );
       await SessionStorage.instance.saveAuth(
         token: response.token,
         userId: response.userId,
@@ -96,9 +99,9 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _showSnack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -112,7 +115,10 @@ class _LoginScreenState extends State<LoginScreen> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 32,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.card,
                   borderRadius: BorderRadius.circular(20),
@@ -130,9 +136,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     Text(
                       'Personal Finance',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textSecondary,
-                          ),
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     Container(
@@ -157,16 +163,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 24),
                     Text(
                       'Welcome Back',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            fontSize: 24,
-                          ),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.headlineSmall?.copyWith(fontSize: 24),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       'Log in to track your finances.',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
+                        color: AppColors.textSecondary,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 24),
@@ -218,22 +224,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 20),
                     Row(
                       children: [
-                        const Expanded(
-                          child: Divider(color: AppColors.border),
-                        ),
+                        const Expanded(child: Divider(color: AppColors.border)),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                           child: Text(
                             'Or continue with',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
+                            style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(color: AppColors.textSecondary),
                           ),
                         ),
-                        const Expanded(
-                          child: Divider(color: AppColors.border),
-                        ),
+                        const Expanded(child: Divider(color: AppColors.border)),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -268,9 +268,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         label: Text(
                           'Continue with Google',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
+                          style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(fontWeight: FontWeight.w600),
                         ),
                       ),
@@ -284,9 +282,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       children: [
                         Text(
                           "Don't have an account?",
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
+                          style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(color: AppColors.textSecondary),
                         ),
                         TextButton(

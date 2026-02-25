@@ -13,7 +13,7 @@ class BudgetStatusEmptyScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.page,
       appBar: AppBar(
-        title: const Text('Budget Status'),
+        title: const Text('Funds Status'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new),
           onPressed: () => Navigator.pop(context),
@@ -25,7 +25,9 @@ class BudgetStatusEmptyScreen extends StatelessWidget {
           ),
         ],
       ),
-      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.overview),
+      bottomNavigationBar: const FinMateBottomNav(
+        active: FinMateNavItem.overview,
+      ),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -48,27 +50,28 @@ class BudgetStatusEmptyScreen extends StatelessWidget {
                         color: const Color(0xFFFED7AA),
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      child: const Icon(Icons.account_balance_wallet_outlined,
-                          color: Color(0xFFF97316), size: 30),
+                      child: const Icon(
+                        Icons.account_balance_wallet_outlined,
+                        color: Color(0xFFF97316),
+                        size: 30,
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'No budget set for this category.',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(fontWeight: FontWeight.w700),
+                  'No funds set for this category.',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 6),
                 Text(
                   'Track your spending habits better by setting a monthly limit.',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: AppColors.textSecondary),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 20),
@@ -84,16 +87,15 @@ class BudgetStatusEmptyScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(14),
                       ),
                     ),
-                    child: const Text('Set a Budget'),
+                    child: const Text('Set Funds'),
                   ),
                 ),
                 const SizedBox(height: 20),
                 Text(
                   'All values are in VND',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: AppColors.textMuted),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
                 ),
               ],
             ),
@@ -103,4 +105,3 @@ class BudgetStatusEmptyScreen extends StatelessWidget {
     );
   }
 }
-

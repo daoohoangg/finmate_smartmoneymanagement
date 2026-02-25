@@ -10,9 +10,13 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class BudgetResponse {
     private Long id;
+    private String name;
     private Long categoryId;
     private String categoryName;
     private BigDecimal amountLimit;
+    private BigDecimal savedAmount;
+    private BigDecimal remainingToGoal;
+    private Integer savingProgressPercentage;
     private BigDecimal spent;
     private BigDecimal available;
     private BudgetPeriod period;

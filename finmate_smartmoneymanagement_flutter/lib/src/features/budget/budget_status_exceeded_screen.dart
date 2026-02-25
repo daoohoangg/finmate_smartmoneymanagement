@@ -13,7 +13,7 @@ class BudgetStatusExceededScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.page,
       appBar: AppBar(
-        title: const Text('Budget Status'),
+        title: const Text('Funds Status'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new),
           onPressed: () => Navigator.pop(context),
@@ -25,7 +25,9 @@ class BudgetStatusExceededScreen extends StatelessWidget {
           ),
         ],
       ),
-      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.overview),
+      bottomNavigationBar: const FinMateBottomNav(
+        active: FinMateNavItem.overview,
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -36,19 +38,18 @@ class BudgetStatusExceededScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Budget Exceeded',
-                    style: Theme.of(context)
-                        .textTheme
-                        .headlineSmall
-                        ?.copyWith(color: AppColors.primaryRed, fontSize: 22),
+                    'Funds Exceeded',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      color: AppColors.primaryRed,
+                      fontSize: 22,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     'Action required',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: AppColors.textSecondary),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   _CriticalAlert(),
@@ -67,7 +68,7 @@ class BudgetStatusExceededScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                      child: const Text('Adjust Budget'),
+                      child: const Text('Adjust Funds'),
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -90,10 +91,9 @@ class BudgetStatusExceededScreen extends StatelessWidget {
                   Center(
                     child: Text(
                       'Variant 3 of 4',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: AppColors.textSecondary),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                   ),
                 ],
@@ -123,10 +123,9 @@ class _CriticalAlert extends StatelessWidget {
           Expanded(
             child: Text(
               'Critical alert. You have exceeded your monthly limit for Food & Dining.',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: AppColors.textSecondary),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
             ),
           ),
         ],
@@ -150,14 +149,16 @@ class _ExceededCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.restaurant_outlined, color: AppColors.primaryRed),
+              const Icon(
+                Icons.restaurant_outlined,
+                color: AppColors.primaryRed,
+              ),
               const SizedBox(width: 8),
               Text(
                 'Food & Dining',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.copyWith(fontWeight: FontWeight.w600),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
               ),
               const Spacer(),
               Container(
@@ -168,7 +169,10 @@ class _ExceededCard extends StatelessWidget {
                 ),
                 child: const Text(
                   '110%',
-                  style: TextStyle(color: AppColors.primaryRed, fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                    color: AppColors.primaryRed,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],
@@ -176,18 +180,16 @@ class _ExceededCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             '3.300.000 VND',
-            style: Theme.of(context)
-                .textTheme
-                .titleLarge
-                ?.copyWith(color: AppColors.primaryRed),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(color: AppColors.primaryRed),
           ),
           const SizedBox(height: 4),
           Text(
             'Limit: 3.000.000 VND',
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: AppColors.textSecondary),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 10),
           ClipRRect(
@@ -196,7 +198,9 @@ class _ExceededCard extends StatelessWidget {
               value: 1.0,
               minHeight: 8,
               backgroundColor: AppColors.border,
-              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryRed),
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                AppColors.primaryRed,
+              ),
             ),
           ),
           const SizedBox(height: 10),
@@ -204,10 +208,10 @@ class _ExceededCard extends StatelessWidget {
             children: [
               Text(
                 'Exceeded by 300.000 VND',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: AppColors.primaryRed, fontWeight: FontWeight.w600),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.primaryRed,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
@@ -246,18 +250,16 @@ class _MiniStat extends StatelessWidget {
           children: [
             Text(
               label.toUpperCase(),
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: AppColors.textMuted),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
             ),
             const SizedBox(height: 4),
             Text(
               value,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(fontWeight: FontWeight.w700),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700),
             ),
           ],
         ),

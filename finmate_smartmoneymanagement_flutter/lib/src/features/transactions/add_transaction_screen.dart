@@ -31,8 +31,11 @@ class AddTransactionScreen extends StatefulWidget {
 class _AddTransactionScreenState extends State<AddTransactionScreen> {
   late bool _isExpense;
   int? _selectedCategoryId;
+  int? _selectedParentCategoryId;
   int? _selectedWalletId;
   List<fm.Category>? _categories;
+  List<fm.Category>? _parentCategories;
+  Map<int, List<fm.Category>> _childrenByParent = const <int, List<fm.Category>>{};
   List<Wallet>? _wallets;
   bool _isLoading = false;
   bool _isSaving = false;
@@ -73,6 +76,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   void reassemble() {
     super.reassemble();
     _categories = null;
+    _parentCategories = null;
+    _childrenByParent = const <int, List<fm.Category>>{};
     _wallets = null;
     _selectedDate ??= DateTime.now();
     _loadData();
@@ -109,27 +114,40 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         if (aOrder != bOrder) return aOrder.compareTo(bOrder);
         return a.name.toLowerCase().compareTo(b.name.toLowerCase());
       });
+      wallets = _dedupeWalletsById(wallets);
       final loadedCategories = await _categorySvc.getCategories(
         type: _isExpense ? fm.CategoryType.expense : fm.CategoryType.income,
       );
-      final categories = _isExpense
-          ? loadedCategories
-              .where((category) => category.parentId != null && !category.isPrimary)
-              .toList()
-          : loadedCategories;
       if (!mounted) return;
       setState(() {
         _wallets = wallets;
-        _categories = categories;
-        _selectedWalletId ??= wallets.isNotEmpty ? wallets.first.id : null;
+        _selectedWalletId = _resolveSelectedWalletId(wallets, _selectedWalletId);
         if (_isExpense) {
-          if (_selectedCategoryId == null && categories.isNotEmpty) {
-            _selectedCategoryId = categories.first.id;
-          } else if (_selectedCategoryId != null &&
-              !categories.any((c) => c.id == _selectedCategoryId)) {
-            _selectedCategoryId = categories.isNotEmpty ? categories.first.id : null;
-          }
+          final categoryTree = _buildExpenseCategoryTree(loadedCategories);
+          final parentCategories = categoryTree.parentCategories;
+          final childrenByParent = categoryTree.childrenByParent;
+          final parentId =
+              (_selectedParentCategoryId != null &&
+                  parentCategories.any((category) => category.id == _selectedParentCategoryId))
+              ? _selectedParentCategoryId
+              : (parentCategories.isNotEmpty ? parentCategories.first.id : null);
+          final childCategories =
+              parentId != null ? (childrenByParent[parentId] ?? const <fm.Category>[]) : const <fm.Category>[];
+          final selectedCategoryId =
+              (_selectedCategoryId != null &&
+                  childCategories.any((category) => category.id == _selectedCategoryId))
+              ? _selectedCategoryId
+              : (childCategories.isNotEmpty ? childCategories.first.id : null);
+          _parentCategories = parentCategories;
+          _childrenByParent = childrenByParent;
+          _selectedParentCategoryId = parentId;
+          _categories = childCategories;
+          _selectedCategoryId = selectedCategoryId;
         } else {
+          _parentCategories = const <fm.Category>[];
+          _childrenByParent = const <int, List<fm.Category>>{};
+          _selectedParentCategoryId = null;
+          _categories = const <fm.Category>[];
           _selectedCategoryId = null;
         }
       });
@@ -167,6 +185,33 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     }
   }
 
+  List<Wallet> _dedupeWalletsById(List<Wallet> wallets) {
+    final seenIds = <int>{};
+    final result = <Wallet>[];
+    for (final wallet in wallets) {
+      if (!seenIds.add(wallet.id)) continue;
+      result.add(wallet);
+    }
+    return result;
+  }
+
+  List<fm.Category> _dedupeCategoriesById(List<fm.Category> categories) {
+    final seenIds = <int>{};
+    final result = <fm.Category>[];
+    for (final category in categories) {
+      if (!seenIds.add(category.id)) continue;
+      result.add(category);
+    }
+    return result;
+  }
+
+  int? _resolveSelectedWalletId(List<Wallet> wallets, int? current) {
+    if (current != null && wallets.any((wallet) => wallet.id == current)) {
+      return current;
+    }
+    return wallets.isNotEmpty ? wallets.first.id : null;
+  }
+
   Future<void> _loadCategories() async {
     setState(() {
       _isLoading = true;
@@ -176,17 +221,25 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       final loadedCategories = await _categorySvc.getCategories(
         type: _isExpense ? fm.CategoryType.expense : fm.CategoryType.income,
       );
-      final categories = _isExpense
-          ? loadedCategories
-              .where((category) => category.parentId != null && !category.isPrimary)
-              .toList()
-          : loadedCategories;
       if (!mounted) return;
       setState(() {
-        _categories = categories;
         if (_isExpense) {
-          _selectedCategoryId = categories.isNotEmpty ? categories.first.id : null;
+          final categoryTree = _buildExpenseCategoryTree(loadedCategories);
+          final parentCategories = categoryTree.parentCategories;
+          final childrenByParent = categoryTree.childrenByParent;
+          final parentId = parentCategories.isNotEmpty ? parentCategories.first.id : null;
+          final childCategories =
+              parentId != null ? (childrenByParent[parentId] ?? const <fm.Category>[]) : const <fm.Category>[];
+          _parentCategories = parentCategories;
+          _childrenByParent = childrenByParent;
+          _selectedParentCategoryId = parentId;
+          _categories = childCategories;
+          _selectedCategoryId = childCategories.isNotEmpty ? childCategories.first.id : null;
         } else {
+          _parentCategories = const <fm.Category>[];
+          _childrenByParent = const <int, List<fm.Category>>{};
+          _selectedParentCategoryId = null;
+          _categories = const <fm.Category>[];
           _selectedCategoryId = null;
         }
       });
@@ -196,6 +249,101 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  ({
+    List<fm.Category> parentCategories,
+    Map<int, List<fm.Category>> childrenByParent,
+  }) _buildExpenseCategoryTree(List<fm.Category> loadedCategories) {
+    final expenseCategories = loadedCategories
+        .where((category) => category.type == fm.CategoryType.expense)
+        .toList();
+    final parentCandidates = expenseCategories
+        .where((category) => category.parentId == null)
+        .toList();
+    final parentCategories = _selectPrimaryParentCategories(parentCandidates);
+    final parentIds = parentCategories.map((category) => category.id).toSet();
+    final childrenByParent = <int, List<fm.Category>>{};
+    for (final category in expenseCategories) {
+      final parentId = category.parentId;
+      if (parentId == null || !parentIds.contains(parentId)) continue;
+      childrenByParent.putIfAbsent(parentId, () => <fm.Category>[]).add(category);
+    }
+    for (final entry in childrenByParent.entries) {
+      entry.value.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    }
+    return (
+      parentCategories: parentCategories,
+      childrenByParent: childrenByParent,
+    );
+  }
+
+  List<fm.Category> _selectPrimaryParentCategories(List<fm.Category> parentCandidates) {
+    final candidates = List<fm.Category>.from(parentCandidates)
+      ..sort((a, b) {
+        final groupOrderDiff = _categoryGroupOrder(a.group) - _categoryGroupOrder(b.group);
+        if (groupOrderDiff != 0) return groupOrderDiff;
+        if (a.isSystemCategory != b.isSystemCategory) {
+          return a.isSystemCategory ? 1 : -1;
+        }
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
+
+    final selected = <fm.Category>[];
+    const preferredGroups = <fm.CategoryGroup>[
+      fm.CategoryGroup.necessary,
+      fm.CategoryGroup.accumulation,
+      fm.CategoryGroup.flexibility,
+    ];
+
+    for (final group in preferredGroups) {
+      for (final category in candidates) {
+        if (category.group == group && !selected.any((item) => item.id == category.id)) {
+          selected.add(category);
+          break;
+        }
+      }
+    }
+
+    for (final category in candidates) {
+      if (selected.any((item) => item.id == category.id)) continue;
+      selected.add(category);
+      if (selected.length >= 3) break;
+    }
+
+    if (selected.length > 3) {
+      return selected.take(3).toList();
+    }
+    return selected;
+  }
+
+  int _categoryGroupOrder(fm.CategoryGroup? group) {
+    switch (group) {
+      case fm.CategoryGroup.necessary:
+        return 0;
+      case fm.CategoryGroup.accumulation:
+        return 1;
+      case fm.CategoryGroup.flexibility:
+        return 2;
+      case null:
+        return 100;
+    }
+  }
+
+  void _selectParentCategory(int parentId) {
+    if (!_isExpense) return;
+    final childCategories = _childrenByParent[parentId] ?? const <fm.Category>[];
+    setState(() {
+      _selectedParentCategoryId = parentId;
+      _categories = childCategories;
+      final currentCategoryId = _selectedCategoryId;
+      if (currentCategoryId != null &&
+          childCategories.any((category) => category.id == currentCategoryId)) {
+        _selectedCategoryId = currentCategoryId;
+      } else {
+        _selectedCategoryId = childCategories.isNotEmpty ? childCategories.first.id : null;
+      }
+    });
   }
 
   num? _parseAmount(String raw) {
@@ -221,9 +369,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       _showSnack('Please enter a valid amount');
       return;
     }
-    final categoryId = _selectedCategoryId;
+    final categoryId = _isExpense ? _selectedCategoryId : null;
     if (_isExpense && categoryId == null) {
-      _showSnack('Please select a category');
+      _showSnack('Please select a subcategory');
       return;
     }
     setState(() => _isSaving = true);
@@ -373,16 +521,34 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   Widget build(BuildContext context) {
     final amountController = _amountController ??= TextEditingController();
     final rawCategories = _categories as List<dynamic>?;
+    final rawParentCategories = _parentCategories as List<dynamic>?;
     final rawWallets = _wallets as List<dynamic>?;
-    final categories =
-        rawCategories?.whereType<fm.Category>().toList() ?? const <fm.Category>[];
-    final wallets = rawWallets?.whereType<Wallet>().toList() ?? const <Wallet>[];
+    final categories = _dedupeCategoriesById(
+      rawCategories?.whereType<fm.Category>().toList() ?? const <fm.Category>[],
+    );
+    final parentCategories =
+        rawParentCategories?.whereType<fm.Category>().toList() ?? const <fm.Category>[];
+    final categoryIds = categories.map((category) => category.id).toSet();
+    final selectedCategoryId =
+        _selectedCategoryId != null && categoryIds.contains(_selectedCategoryId)
+            ? _selectedCategoryId
+            : null;
+    final wallets = _dedupeWalletsById(
+      rawWallets?.whereType<Wallet>().toList() ?? const <Wallet>[],
+    );
+    final walletIds = wallets.map((wallet) => wallet.id).toSet();
+    final selectedWalletId =
+        _selectedWalletId != null && walletIds.contains(_selectedWalletId)
+            ? _selectedWalletId
+            : null;
     final receiptSizeLabel =
         _receiptSize != null ? _formatBytes(_receiptSize!) : null;
     final hasInvalidCategories =
         rawCategories != null && rawCategories.any((item) => item is! fm.Category);
+    final hasInvalidParentCategories =
+        rawParentCategories != null && rawParentCategories.any((item) => item is! fm.Category);
     final hasInvalidWallets = rawWallets != null && rawWallets.any((item) => item is! Wallet);
-    if ((hasInvalidCategories || hasInvalidWallets) && !_isLoading) {
+    if ((hasInvalidCategories || hasInvalidParentCategories || hasInvalidWallets) && !_isLoading) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           _loadData();
@@ -486,7 +652,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   ),
                   const SizedBox(height: 6),
                   DropdownButtonFormField<int?>(
-                    value: _selectedWalletId,
+                    value: selectedWalletId,
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: AppColors.card,
@@ -513,59 +679,119 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     ],
                     onChanged: (value) => setState(() => _selectedWalletId = value),
                   ),
-                  const SizedBox(height: 18),
-                  Text(
-                    'Category',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 10),
-                  if (!_isExpense)
+                  if (_isExpense) ...[
+                    const SizedBox(height: 18),
                     Text(
-                      'Optional for income',
+                      'Category',
                       style: Theme.of(context)
                           .textTheme
                           .bodySmall
-                          ?.copyWith(color: AppColors.textSecondary),
+                          ?.copyWith(fontWeight: FontWeight.w600),
                     ),
-                  if (_isExpense && categories.isEmpty)
-                    Text(
-                      'No categories available.',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: AppColors.textSecondary),
-                    ),
-                  if (categories.isNotEmpty)
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        const spacing = 10.0;
-                        final itemWidth = (constraints.maxWidth - spacing) / 2;
-                        return Wrap(
-                          spacing: spacing,
-                          runSpacing: spacing,
-                          children: categories
-                              .map(
-                                (category) => SizedBox(
-                                  width: itemWidth,
-                                  child: _CategoryChip(
-                                    label: category.name,
-                                    icon: CategoryUi.iconFromString(category.icon),
-                                    color: CategoryUi.colorFromString(
-                                      category.color,
-                                      fallback: AppColors.primaryBlue,
-                                    ),
-                                    selected: category.id == _selectedCategoryId,
-                                    onTap: () => setState(() => _selectedCategoryId = category.id),
+                    const SizedBox(height: 10),
+                    if (parentCategories.isEmpty)
+                      Text(
+                        'No main categories available.',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: AppColors.textSecondary),
+                      ),
+                    if (parentCategories.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Text(
+                          'Step 1: Choose main category',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(color: AppColors.textSecondary),
+                        ),
+                      ),
+                    if (parentCategories.isNotEmpty)
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          const spacing = 10.0;
+                          final itemWidth = (constraints.maxWidth - (spacing * 2)) / 3;
+                          return SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: parentCategories.asMap().entries.map((entry) {
+                                final index = entry.key;
+                                final category = entry.value;
+                                return Padding(
+                                  padding: EdgeInsets.only(
+                                    right: index == parentCategories.length - 1 ? 0 : spacing,
                                   ),
-                                ),
-                              )
-                              .toList(),
-                        );
-                      },
-                    ),
+                                  child: SizedBox(
+                                    width: itemWidth,
+                                    child: _CategoryChip(
+                                      label: category.name,
+                                      icon: CategoryUi.iconFromString(category.icon),
+                                      color: CategoryUi.colorFromString(
+                                        category.color,
+                                        fallback: AppColors.primaryBlue,
+                                      ),
+                                      selected: category.id == _selectedParentCategoryId,
+                                      onTap: () => _selectParentCategory(category.id),
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          );
+                        },
+                      ),
+                    if (parentCategories.isNotEmpty) const SizedBox(height: 14),
+                    if (parentCategories.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Text(
+                          'Step 2: Choose subcategory',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(color: AppColors.textSecondary),
+                        ),
+                      ),
+                    if (parentCategories.isNotEmpty && categories.isEmpty)
+                      Text(
+                        'No subcategories in this main category.',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: AppColors.textSecondary),
+                      ),
+                    if (categories.isNotEmpty)
+                      DropdownButtonFormField<int?>(
+                        value: selectedCategoryId,
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: AppColors.card,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: AppColors.border),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: AppColors.border),
+                          ),
+                        ),
+                        items: [
+                          const DropdownMenuItem<int?>(
+                            value: null,
+                            child: Text('Select a subcategory'),
+                          ),
+                          ...categories.map(
+                            (category) => DropdownMenuItem<int?>(
+                              value: category.id,
+                              child: Text(category.name),
+                            ),
+                          ),
+                        ],
+                        onChanged: (value) => setState(() => _selectedCategoryId = value),
+                      ),
+                  ],
                   const SizedBox(height: 16),
                   _NoteField(controller: _noteController),
                   const SizedBox(height: 16),

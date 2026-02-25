@@ -22,16 +22,21 @@ class Category {
   final bool isSystemCategory;
 
   factory Category.fromJson(Map<String, dynamic> json) {
+    final primaryRaw = json.containsKey('isPrimary') ? json['isPrimary'] : json['primary'];
+    final systemRaw = json.containsKey('isSystemCategory')
+        ? json['isSystemCategory']
+        : json['systemCategory'];
+
     return Category(
       id: _parseInt(json['id']),
       name: json['name']?.toString() ?? '',
       type: CategoryTypeX.fromApi(json['type']?.toString()),
       group: CategoryGroupX.fromApi(json['group']?.toString()),
-      isPrimary: _parseBool(json['isPrimary']),
+      isPrimary: _parseBool(primaryRaw),
       icon: json['icon']?.toString(),
       color: json['color']?.toString(),
       parentId: _parseNullableInt(json['parentId']),
-      isSystemCategory: _parseBool(json['isSystemCategory']),
+      isSystemCategory: _parseBool(systemRaw),
     );
   }
 }

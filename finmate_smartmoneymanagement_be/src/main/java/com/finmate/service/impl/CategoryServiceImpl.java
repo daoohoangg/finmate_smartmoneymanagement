@@ -6,7 +6,14 @@ import com.finmate.entities.Category;
 import com.finmate.entities.User;
 import com.finmate.enums.CategoryGroup;
 import com.finmate.enums.CategoryType;
+import com.finmate.exception.BadRequestException;
+import com.finmate.exception.ResourceNotFoundException;
+import com.finmate.exception.UnauthorizedException;
+import com.finmate.repository.BudgetRepository;
 import com.finmate.repository.CategoryRepository;
+import com.finmate.repository.CategoryRuleRepository;
+import com.finmate.repository.RecurringTransactionRepository;
+import com.finmate.repository.TransactionRepository;
 import com.finmate.repository.UserRepository;
 import com.finmate.service.CategoryService;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +32,10 @@ public class CategoryServiceImpl implements CategoryService {
 
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
+    private final TransactionRepository transactionRepository;
+    private final BudgetRepository budgetRepository;
+    private final RecurringTransactionRepository recurringTransactionRepository;
+    private final CategoryRuleRepository categoryRuleRepository;
 
     @Override
     public CategoryResponse createCategory(UUID userId, CategoryRequest request) {
@@ -123,11 +134,33 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public void deleteCategory(Long id) {
-        if (!categoryRepository.existsById(id)) {
-            throw new RuntimeException("Category not found");
+    public void deleteCategory(UUID userId, Long id) {
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
+
+        if (category.getUser() == null) {
+            throw new BadRequestException("System category cannot be deleted");
         }
-        categoryRepository.deleteById(id);
+        if (!category.getUser().getId().equals(userId)) {
+            throw new UnauthorizedException("Category does not belong to user");
+        }
+        if (categoryRepository.existsByParentId(id)) {
+            throw new BadRequestException("Cannot delete category with subcategories");
+        }
+        if (transactionRepository.existsByUserIdAndCategoryId(userId, id)) {
+            throw new BadRequestException("Category is used in transactions");
+        }
+        if (budgetRepository.existsByUserIdAndCategoryId(userId, id)) {
+            throw new BadRequestException("Category is used in budgets");
+        }
+        if (recurringTransactionRepository.existsByUserIdAndCategoryId(userId, id)) {
+            throw new BadRequestException("Category is used in recurring transactions");
+        }
+        if (categoryRuleRepository.existsByUserIdAndCategoryId(userId, id)) {
+            throw new BadRequestException("Category is used in category rules");
+        }
+
+        categoryRepository.delete(category);
     }
 
     private CategoryResponse mapToResponse(Category category) {
