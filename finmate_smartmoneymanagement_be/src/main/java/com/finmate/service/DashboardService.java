@@ -6,4 +6,5 @@ import java.util.UUID;
 
 public interface DashboardService {
     DashboardResponse getDashboard(UUID userId);
+    DashboardResponse postDashboard(UUID userId);
 }

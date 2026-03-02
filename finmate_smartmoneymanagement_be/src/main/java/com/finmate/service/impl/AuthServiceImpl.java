@@ -30,8 +30,8 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
-    @Value("${google.oauth.client-id:}")
-    private String googleClientId;
+    @Value("#{'${google.oauth.allowed-client-ids:}'.split(',')}")
+    private java.util.List<String> allowedClientIds;
 
     @Override
     public AuthResponse register(RegisterRequest request) {
@@ -113,7 +113,7 @@ public class AuthServiceImpl implements AuthService {
         }
         // Check if idToken is provided (from Mobile/Desktop platforms)
         else if (request.getIdToken() != null && !request.getIdToken().isBlank()) {
-            if (googleClientId == null || googleClientId.isBlank()) {
+            if (allowedClientIds == null || allowedClientIds.isEmpty()) {
                 throw new RuntimeException("Google Sign-In is not configured");
             }
 
@@ -130,7 +130,7 @@ public class AuthServiceImpl implements AuthService {
             Object emailObj = tokenInfo.get("email");
             Object emailVerified = tokenInfo.get("email_verified");
 
-            if (aud == null || !googleClientId.equals(aud.toString())) {
+            if (aud == null || !allowedClientIds.contains(aud.toString())) {
                 throw new RuntimeException("Google token audience mismatch");
             }
             if (emailObj == null) {

@@ -1,13 +1,9 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import '../services/google_sign_in_service.dart';
 
-/// A Google Sign-In button that uses the recommended approach for each platform.
-/// On web, it uses the Google Identity Services button.
-/// On mobile/desktop, it shows a custom styled button.
+
 class GoogleSignInButton extends StatefulWidget {
-  final void Function(String idToken) onSuccess;
+  final void Function({String? idToken, String? accessToken}) onSuccess;
   final void Function(String error) onError;
   final bool isLoading;
 
@@ -31,9 +27,12 @@ class _GoogleSignInButtonState extends State<GoogleSignInButton> {
     setState(() => _isSigningIn = true);
     
     try {
-      final idToken = await GoogleSignInService.instance.signIn();
-      if (idToken != null) {
-        widget.onSuccess(idToken);
+      final result = await GoogleSignInService.instance.signIn();
+      if (result != null && result.isValid) {
+        widget.onSuccess(
+          idToken: result.idToken,
+          accessToken: result.accessToken,
+        );
       } else {
         widget.onError('Sign-in was cancelled');
       }

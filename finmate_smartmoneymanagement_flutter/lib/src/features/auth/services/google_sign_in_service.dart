@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_sign_in/google_sign_in.dart';
+import '../../../core/config/app_config.dart';
 
 /// Result of Google Sign-In containing either idToken or accessToken
 class GoogleSignInResult {
@@ -17,12 +18,8 @@ class GoogleSignInService {
   GoogleSignInService._();
   static final GoogleSignInService instance = GoogleSignInService._();
 
-  // Web Client ID for Google Sign-In
-  static const String _webClientId = 
-    '171143451092-9g32gci1unlaidcjh2fubhl48vtabrv5.apps.googleusercontent.com';
-
   late final GoogleSignIn _googleSignIn = GoogleSignIn(
-    clientId: kIsWeb ? _webClientId : null,
+    clientId: kIsWeb ? AppConfig.googleWebClientId : null,
     scopes: ['email', 'profile'],
   );
 

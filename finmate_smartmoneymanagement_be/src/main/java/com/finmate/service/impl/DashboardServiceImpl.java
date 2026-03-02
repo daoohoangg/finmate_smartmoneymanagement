@@ -120,6 +120,11 @@ public class DashboardServiceImpl implements DashboardService {
                 topCategory != null ? topCategory.amount : null);
     }
 
+    @Override
+    public DashboardResponse postDashboard(UUID userId) {
+        return null;
+    }
+
     private BigDecimal calculateSpentAmount(UUID userId, Budget budget) {
         java.time.LocalDateTime startDate;
         java.time.LocalDateTime endDate;
@@ -212,4 +217,7 @@ public class DashboardServiceImpl implements DashboardService {
             this.amount = amount;
         }
     }
+
+
+
 }
