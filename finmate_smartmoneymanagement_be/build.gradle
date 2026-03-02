@@ -35,6 +35,8 @@ dependencies {
     implementation 'org.apache.commons:commons-csv:1.10.0'
     implementation 'org.apache.poi:poi-ooxml:5.2.5'
     implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+    // Reads .env file automatically — no need to set env vars manually in IDE
+    implementation 'me.paulschwarz:spring-dotenv:4.0.0'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
     compileOnly 'org.projectlombok:lombok'
