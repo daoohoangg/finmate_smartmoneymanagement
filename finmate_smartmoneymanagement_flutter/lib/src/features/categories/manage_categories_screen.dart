@@ -450,6 +450,9 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
                 child: _CategoryCard(
                   item: item,
                   isDeleting: _isDeletingCategory == true,
+                  onAddSubcategory: () {
+                    _openCreateSubcategory(parentCategoryId: item.id);
+                  },
                   onDeleteChild: (child) async {
                     await _confirmAndDeleteCategory(
                       categoryId: child.id,
@@ -725,11 +728,13 @@ class _CategoryChildItem {
 class _CategoryCard extends StatelessWidget {
   const _CategoryCard({
     required this.item,
+    this.onAddSubcategory,
     this.onDeleteChild,
     this.isDeleting = false,
   });
 
   final _CategoryItem item;
+  final VoidCallback? onAddSubcategory;
   final Future<void> Function(_CategoryChildItem child)? onDeleteChild;
   final bool isDeleting;
 
@@ -775,84 +780,100 @@ class _CategoryCard extends StatelessWidget {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.textMuted),
-          children: item.children.isEmpty
-              ? [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'No subcategories',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(color: AppColors.textSecondary),
-                      ),
+          children: [
+            if (onAddSubcategory != null)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: onAddSubcategory,
+                  icon: const Icon(Icons.add_circle_outline, size: 16),
+                  label: const Text('Add subcategory'),
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    foregroundColor: AppColors.primaryBlue,
+                  ),
+                ),
+              ),
+            if (item.children.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'No subcategories',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary,
                     ),
                   ),
-                ]
-              : item.children
-                  .map(
-                    (child) {
-                      final row = Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: AppColors.fieldBackground,
-                          borderRadius: BorderRadius.circular(10),
+                ),
+              )
+            else
+              ...item.children.map(
+                (child) {
+                  final row = Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.fieldBackground,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: child.color.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(child.icon, color: child.color, size: 16),
                         ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: child.color.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Icon(child.icon, color: child.color, size: 16),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                child.name,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.copyWith(fontWeight: FontWeight.w600),
-                              ),
-                            ),
-                          ],
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            child.name,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(fontWeight: FontWeight.w600),
+                          ),
                         ),
-                      );
+                      ],
+                    ),
+                  );
 
-                      final canDelete = child.isSystemCategory != true && onDeleteChild != null;
-                      final wrapped = canDelete
-                          ? Dismissible(
-                              key: ValueKey('subcategory-${item.id}-${child.id}'),
-                              direction: DismissDirection.endToStart,
-                              background: Container(
-                                decoration: BoxDecoration(
-                                  color: AppColors.primaryRed.withOpacity(0.12),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                alignment: Alignment.centerRight,
-                                padding: const EdgeInsets.symmetric(horizontal: 12),
-                                child: const Icon(Icons.delete_outline, color: AppColors.primaryRed),
-                              ),
-                              confirmDismiss: (_) async {
-                                await onDeleteChild!(child);
-                                return false;
-                              },
-                              child: row,
-                            )
-                          : row;
+                  final canDelete =
+                      child.isSystemCategory != true && onDeleteChild != null;
+                  final wrapped = canDelete
+                      ? Dismissible(
+                          key: ValueKey('subcategory-${item.id}-${child.id}'),
+                          direction: DismissDirection.endToStart,
+                          background: Container(
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryRed.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: const Icon(
+                              Icons.delete_outline,
+                              color: AppColors.primaryRed,
+                            ),
+                          ),
+                          confirmDismiss: (_) async {
+                            await onDeleteChild!(child);
+                            return false;
+                          },
+                          child: row,
+                        )
+                      : row;
 
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: wrapped,
-                      );
-                    },
-                  )
-                  .toList(),
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: wrapped,
+                  );
+                },
+              ),
+          ],
         ),
       ),
     );

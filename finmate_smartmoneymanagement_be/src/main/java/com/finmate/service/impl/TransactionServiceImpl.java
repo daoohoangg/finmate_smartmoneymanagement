@@ -101,7 +101,12 @@ public class TransactionServiceImpl implements TransactionService {
                 throw new RuntimeException("Category is required for expense");
             }
             if (transaction.getBudget() == null) {
-                ensureBudgetAvailable(userId, category.getId(), request.getAmount(), null);
+                ensureBudgetAvailable(
+                        userId,
+                        category.getId(),
+                        request.getAmount(),
+                        null,
+                        transaction.getTransactionDate());
             }
             ensureSufficientBalance(wallet, request.getAmount());
             wallet.setBalance(wallet.getBalance().subtract(request.getAmount()));
@@ -157,14 +162,13 @@ public class TransactionServiceImpl implements TransactionService {
             throw new RuntimeException("Invalid transaction type or missing required fields");
         }
 
-        Transaction savedTransaction = transactionRepository.save(transaction);
+        Transaction savedTransaction = transactionRepository.saveAndFlush(transaction);
         return mapToResponse(savedTransaction);
     }
 
     @Override
-    public TransactionResponse getTransactionById(Long id) {
-        Transaction transaction = transactionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Transaction not found"));
+    public TransactionResponse getTransactionById(UUID userId, Long id) {
+        Transaction transaction = getUserTransactionOrThrow(userId, id);
         return mapToResponse(transaction);
     }
 
@@ -187,9 +191,8 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     @Transactional
-    public TransactionResponse updateTransaction(Long id, TransactionRequest request) {
-        Transaction existing = transactionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Transaction not found"));
+    public TransactionResponse updateTransaction(UUID userId, Long id, TransactionRequest request) {
+        Transaction existing = getUserTransactionOrThrow(userId, id);
 
         if (request.getType() == null || request.getWalletId() == null) {
             throw new RuntimeException("Transaction type and wallet are required");
@@ -238,17 +241,21 @@ public class TransactionServiceImpl implements TransactionService {
         }
 
         applyTransactionEffects(existing, request, category, existing.getId());
-        Transaction saved = transactionRepository.save(existing);
+        Transaction saved = transactionRepository.saveAndFlush(existing);
         return mapToResponse(saved);
     }
 
     @Override
     @Transactional
-    public void deleteTransaction(Long id) {
-        Transaction existing = transactionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Transaction not found"));
+    public void deleteTransaction(UUID userId, Long id) {
+        Transaction existing = getUserTransactionOrThrow(userId, id);
         reverseTransactionEffects(existing);
         transactionRepository.deleteById(id);
+    }
+
+    private Transaction getUserTransactionOrThrow(UUID userId, Long transactionId) {
+        return transactionRepository.findByIdAndUserId(transactionId, userId)
+                .orElseThrow(() -> new RuntimeException("Transaction not found"));
     }
 
     private void applyTransactionEffects(Transaction transaction, TransactionRequest request, Category category,
@@ -281,8 +288,12 @@ public class TransactionServiceImpl implements TransactionService {
                 throw new RuntimeException("Please select an expense subcategory");
             }
             if (transaction.getBudget() == null) {
-                ensureBudgetAvailable(transaction.getUser().getId(), category.getId(), request.getAmount(),
-                        excludeTransactionId);
+                ensureBudgetAvailable(
+                        transaction.getUser().getId(),
+                        category.getId(),
+                        request.getAmount(),
+                        excludeTransactionId,
+                        transaction.getTransactionDate());
             }
             ensureSufficientBalance(wallet, request.getAmount());
             wallet.setBalance(wallet.getBalance().subtract(request.getAmount()));
@@ -489,31 +500,42 @@ public class TransactionServiceImpl implements TransactionService {
         });
     }
 
-    private void ensureBudgetAvailable(UUID userId, Long categoryId, java.math.BigDecimal amount,
-            Long excludeTransactionId) {
+    private void ensureBudgetAvailable(
+            UUID userId,
+            Long categoryId,
+            java.math.BigDecimal amount,
+            Long excludeTransactionId,
+            LocalDateTime referenceDate) {
         Budget budget = budgetRepository.findByUserIdAndCategoryId(userId, categoryId)
                 .orElseThrow(() -> new RuntimeException("No budget assigned for this category"));
-        BigDecimal spent = calculateSpentForBudget(userId, budget, excludeTransactionId);
+        BigDecimal spent = calculateSpentForBudget(userId, budget, excludeTransactionId, referenceDate);
         BigDecimal available = budget.getAmountLimit().subtract(spent);
         if (available.compareTo(amount) < 0) {
-            throw new RuntimeException("Insufficient budget available");
+            throw new RuntimeException("Insufficient budget available. Remaining: " + available.toPlainString()
+                    + ", required: " + amount.toPlainString());
         }
     }
 
-    private BigDecimal calculateSpentForBudget(UUID userId, Budget budget, Long excludeTransactionId) {
+    private BigDecimal calculateSpentForBudget(
+            UUID userId,
+            Budget budget,
+            Long excludeTransactionId,
+            LocalDateTime referenceDate) {
         java.time.LocalDateTime startDate;
         java.time.LocalDateTime endDate;
+        java.time.LocalDateTime anchorDate = referenceDate != null ? referenceDate : java.time.LocalDateTime.now();
 
         if (budget.getPeriod() == com.finmate.enums.BudgetPeriod.WEEK) {
-            java.time.LocalDateTime now = java.time.LocalDateTime.now();
-            java.time.LocalDateTime startOfWeek = now.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
+            java.time.LocalDateTime startOfWeek = anchorDate
+                    .with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
                     .withHour(0).withMinute(0).withSecond(0).withNano(0);
-            java.time.LocalDateTime endOfWeek = now.with(java.time.temporal.TemporalAdjusters.nextOrSame(java.time.DayOfWeek.SUNDAY))
+            java.time.LocalDateTime endOfWeek = anchorDate
+                    .with(java.time.temporal.TemporalAdjusters.nextOrSame(java.time.DayOfWeek.SUNDAY))
                     .withHour(23).withMinute(59).withSecond(59).withNano(0);
             startDate = startOfWeek;
             endDate = endOfWeek;
         } else {
-            java.time.YearMonth currentMonth = java.time.YearMonth.now();
+            java.time.YearMonth currentMonth = java.time.YearMonth.from(anchorDate);
             startDate = currentMonth.atDay(1).atStartOfDay();
             endDate = currentMonth.atEndOfMonth().atTime(23, 59, 59);
         }

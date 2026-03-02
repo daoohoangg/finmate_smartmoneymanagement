@@ -40,6 +40,15 @@ public class UserSettings {
     @Column(name = "rounding_mode", nullable = false, length = 20)
     private String roundingMode;
 
+    @Column(name = "necessary_allocation_percent")
+    private Integer necessaryAllocationPercent;
+
+    @Column(name = "accumulation_allocation_percent")
+    private Integer accumulationAllocationPercent;
+
+    @Column(name = "flexibility_allocation_percent")
+    private Integer flexibilityAllocationPercent;
+
     @PrePersist
     protected void onCreate() {
         if (darkMode == null) {
@@ -62,6 +71,15 @@ public class UserSettings {
         }
         if (roundingMode == null) {
             roundingMode = "HALF_UP";
+        }
+        if (necessaryAllocationPercent == null) {
+            necessaryAllocationPercent = 60;
+        }
+        if (accumulationAllocationPercent == null) {
+            accumulationAllocationPercent = 20;
+        }
+        if (flexibilityAllocationPercent == null) {
+            flexibilityAllocationPercent = 20;
         }
     }
 }

@@ -6,6 +6,7 @@ import '../budget/allocate_funds_screen.dart';
 import '../budget/budget_create_screen.dart';
 import '../budget/budget_status_track_screen.dart';
 import '../categories/manage_categories_screen.dart';
+import '../planning/manage_budget_screen.dart';
 import '../planning/manual_allocation_screen.dart';
 import '../planning/plan_recommendation_screen.dart';
 import '../recurring/recurring_setup_screen.dart';
@@ -408,10 +409,12 @@ class _QuickActionsGrid extends StatelessWidget {
         ),
       ),
       _ActionData(
-        label: 'Scan\nreceipt',
-        icon: Icons.qr_code_scanner,
+        label: 'Manage\nbudget',
+        icon: Icons.savings_outlined,
         colors: const [Color(0xFF1FB5FF), Color(0xFF3E60FF)],
-        onTap: () => openAddTransaction(isExpense: true),
+        onTap: () => openRoute(
+          Navigator.pushNamed(context, ManageBudgetScreen.routeName),
+        ),
       ),
       _ActionData(
         label: 'Add\nexpense',

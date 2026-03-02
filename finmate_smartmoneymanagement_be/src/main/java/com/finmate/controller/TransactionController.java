@@ -54,8 +54,11 @@ public class TransactionController {
             @ApiResponse(responseCode = "404", description = "Transaction not found")
     })
     public ResponseEntity<TransactionResponse> getTransactionById(
+            @Parameter(description = "User ID", required = false) @RequestHeader(value = "User-Id", required = false) UUID userId,
+            @AuthenticationPrincipal UserPrincipal principal,
             @Parameter(description = "Transaction ID", required = true) @PathVariable Long id) {
-        TransactionResponse response = transactionService.getTransactionById(id);
+        UUID resolved = UserIdResolver.resolve(userId, principal);
+        TransactionResponse response = transactionService.getTransactionById(resolved, id);
         return ResponseEntity.ok(response);
     }
 
@@ -97,9 +100,12 @@ public class TransactionController {
             @ApiResponse(responseCode = "404", description = "Transaction not found")
     })
     public ResponseEntity<TransactionResponse> updateTransaction(
+            @Parameter(description = "User ID", required = false) @RequestHeader(value = "User-Id", required = false) UUID userId,
+            @AuthenticationPrincipal UserPrincipal principal,
             @Parameter(description = "Transaction ID", required = true) @PathVariable Long id,
             @RequestBody TransactionRequest request) {
-        TransactionResponse response = transactionService.updateTransaction(id, request);
+        UUID resolved = UserIdResolver.resolve(userId, principal);
+        TransactionResponse response = transactionService.updateTransaction(resolved, id, request);
         return ResponseEntity.ok(response);
     }
 
@@ -110,8 +116,11 @@ public class TransactionController {
             @ApiResponse(responseCode = "404", description = "Transaction not found")
     })
     public ResponseEntity<Void> deleteTransaction(
+            @Parameter(description = "User ID", required = false) @RequestHeader(value = "User-Id", required = false) UUID userId,
+            @AuthenticationPrincipal UserPrincipal principal,
             @Parameter(description = "Transaction ID", required = true) @PathVariable Long id) {
-        transactionService.deleteTransaction(id);
+        UUID resolved = UserIdResolver.resolve(userId, principal);
+        transactionService.deleteTransaction(resolved, id);
         return ResponseEntity.noContent().build();
     }
 }

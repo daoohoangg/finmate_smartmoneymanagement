@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../shared/widgets/finmate_bottom_nav.dart';
+import 'services/gemini_chat_service.dart';
 
 class AiCoachChatScreen extends StatefulWidget {
   const AiCoachChatScreen({super.key, this.initialMessage});
@@ -16,28 +17,120 @@ class AiCoachChatScreen extends StatefulWidget {
 
 class _AiCoachChatScreenState extends State<AiCoachChatScreen> {
   final TextEditingController _inputController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  final GeminiChatService _chatService = GeminiChatService();
+
+  final List<_ChatMessage> _messages = <_ChatMessage>[];
+  bool _isSending = false;
 
   @override
   void initState() {
     super.initState();
-    if (widget.initialMessage != null) {
-      _inputController.text = widget.initialMessage!;
+    _messages.add(
+      _ChatMessage(
+        isUser: false,
+        text:
+            'Hi, I am your AI Financial Coach. Ask me about budgeting, overspending, savings, or debt payoff.',
+        sentAt: DateTime.now(),
+      ),
+    );
+    final prefill = widget.initialMessage?.trim();
+    if (prefill != null && prefill.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _submitMessage(prefill);
+      });
     }
   }
 
   @override
   void dispose() {
     _inputController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
   void _send() {
     final text = _inputController.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty || _isSending) return;
     _inputController.clear();
+    _submitMessage(text);
+  }
+
+  Future<void> _submitMessage(String text) async {
+    setState(() {
+      _messages.add(
+        _ChatMessage(isUser: true, text: text, sentAt: DateTime.now()),
+      );
+      _isSending = true;
+    });
+    _scrollToBottom();
+
+    try {
+      final history = _messages
+          .where((message) => message.text.trim().isNotEmpty)
+          .map(
+            (message) => GeminiTurn(isUser: message.isUser, text: message.text),
+          )
+          .toList();
+      final reply = await _chatService.sendMessage(
+        userMessage: text,
+        history: history.take(history.length - 1).toList(),
+      );
+      if (!mounted) return;
+      setState(() {
+        _messages.add(
+          _ChatMessage(isUser: false, text: reply, sentAt: DateTime.now()),
+        );
+      });
+      _scrollToBottom();
+    } catch (e) {
+      if (!mounted) return;
+      _showSnack(e.toString());
+      setState(() {
+        _messages.add(
+          _ChatMessage(
+            isUser: false,
+            text:
+                'I could not reach Gemini right now. Please check API key/network and try again.',
+            sentAt: DateTime.now(),
+          ),
+        );
+      });
+      _scrollToBottom();
+    } finally {
+      if (mounted) {
+        setState(() => _isSending = false);
+      }
+    }
+  }
+
+  void _sendQuickAction(String text) {
+    if (_isSending) return;
+    _submitMessage(text);
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollController.hasClients) return;
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 240),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  void _showSnack(String message) {
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text('Sent: $text')));
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  String _formatTime(DateTime dateTime) {
+    final hour = dateTime.hour % 12 == 0 ? 12 : dateTime.hour % 12;
+    final minute = dateTime.minute.toString().padLeft(2, '0');
+    final suffix = dateTime.hour >= 12 ? 'PM' : 'AM';
+    return '$hour:$minute $suffix';
   }
 
   @override
@@ -51,7 +144,11 @@ class _AiCoachChatScreenState extends State<AiCoachChatScreen> {
             const CircleAvatar(
               radius: 16,
               backgroundColor: AppColors.border,
-              child: Icon(Icons.person, size: 18, color: AppColors.textMuted),
+              child: Icon(
+                Icons.smart_toy,
+                size: 18,
+                color: AppColors.textMuted,
+              ),
             ),
             const SizedBox(width: 8),
             Column(
@@ -64,21 +161,15 @@ class _AiCoachChatScreenState extends State<AiCoachChatScreen> {
                   ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                 ),
                 Text(
-                  'Online',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: AppColors.success),
+                  _isSending ? 'Thinking...' : 'Online',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: _isSending ? AppColors.textMuted : AppColors.success,
+                  ),
                 ),
               ],
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.info_outline, color: AppColors.textMuted),
-            onPressed: () {},
-          ),
-        ],
       ),
       bottomNavigationBar: const FinMateBottomNav(
         active: FinMateNavItem.overview,
@@ -86,26 +177,14 @@ class _AiCoachChatScreenState extends State<AiCoachChatScreen> {
       body: Column(
         children: [
           Expanded(
-            child: SingleChildScrollView(
+            child: ListView.separated(
+              controller: _scrollController,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Column(
-                children: [
-                  _DateChip(label: 'Today'),
-                  const SizedBox(height: 16),
-                  _UserBubble(
-                    message:
-                        widget.initialMessage ??
-                        'Why is my Dining Out category red?',
-                    time: '10:42 AM',
-                  ),
-                  const SizedBox(height: 16),
-                  _CoachBubble(
-                    message:
-                        'Your Dining Out is overspent by \$25 because of a recent transaction at Joe\'s Pizza.\n\nTo fix this, you could move money from your Groceries or Entertainment categories.\n\nWould you like me to help you reassign that budget?',
-                    time: '10:43 AM',
-                  ),
-                  const SizedBox(height: 12),
-                  Align(
+              itemCount: _messages.length + (_isSending ? 1 : 0),
+              separatorBuilder: (_, index) => const SizedBox(height: 14),
+              itemBuilder: (context, index) {
+                if (index == _messages.length) {
+                  return Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
                       'Coach is thinking...',
@@ -113,10 +192,15 @@ class _AiCoachChatScreenState extends State<AiCoachChatScreen> {
                         color: AppColors.textMuted,
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-              ),
+                  );
+                }
+                final message = _messages[index];
+                final time = _formatTime(message.sentAt);
+                if (message.isUser) {
+                  return _UserBubble(message: message.text, time: time);
+                }
+                return _CoachBubble(message: message.text, time: time);
+              },
             ),
           ),
           Padding(
@@ -127,7 +211,11 @@ class _AiCoachChatScreenState extends State<AiCoachChatScreen> {
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () {},
+                        onPressed: _isSending
+                            ? null
+                            : () => _sendQuickAction(
+                                'Please help me reassign 25 dollars to cover my overspending.',
+                              ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.primaryBlue,
                           side: const BorderSide(color: AppColors.border),
@@ -135,13 +223,17 @@ class _AiCoachChatScreenState extends State<AiCoachChatScreen> {
                             borderRadius: BorderRadius.circular(20),
                           ),
                         ),
-                        child: const Text('Yes, reassign \$25'),
+                        child: const Text('Reassign \$25'),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () {},
+                        onPressed: _isSending
+                            ? null
+                            : () => _sendQuickAction(
+                                'Show me a simple summary of my funds and what I should do next.',
+                              ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.textSecondary,
                           side: const BorderSide(color: AppColors.border),
@@ -165,7 +257,10 @@ class _AiCoachChatScreenState extends State<AiCoachChatScreen> {
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(color: AppColors.border),
                       ),
-                      child: const Icon(Icons.add, color: AppColors.textMuted),
+                      child: const Icon(
+                        Icons.message,
+                        color: AppColors.textMuted,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -178,6 +273,7 @@ class _AiCoachChatScreenState extends State<AiCoachChatScreen> {
                         ),
                         child: TextField(
                           controller: _inputController,
+                          enabled: !_isSending,
                           decoration: const InputDecoration(
                             hintText: 'Ask a follow-up...',
                             border: InputBorder.none,
@@ -191,7 +287,7 @@ class _AiCoachChatScreenState extends State<AiCoachChatScreen> {
                       width: 44,
                       height: 44,
                       child: ElevatedButton(
-                        onPressed: _send,
+                        onPressed: _isSending ? null : _send,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primaryBlue,
                           foregroundColor: Colors.white,
@@ -200,7 +296,18 @@ class _AiCoachChatScreenState extends State<AiCoachChatScreen> {
                           ),
                           elevation: 0,
                         ),
-                        child: const Icon(Icons.send_rounded, size: 18),
+                        child: _isSending
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
+                              )
+                            : const Icon(Icons.send_rounded, size: 18),
                       ),
                     ),
                   ],
@@ -214,30 +321,16 @@ class _AiCoachChatScreenState extends State<AiCoachChatScreen> {
   }
 }
 
-class _DateChip extends StatelessWidget {
-  const _DateChip({required this.label});
+class _ChatMessage {
+  const _ChatMessage({
+    required this.isUser,
+    required this.text,
+    required this.sentAt,
+  });
 
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Text(
-        label.toUpperCase(),
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: AppColors.textSecondary,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.4,
-        ),
-      ),
-    );
-  }
+  final bool isUser;
+  final String text;
+  final DateTime sentAt;
 }
 
 class _UserBubble extends StatelessWidget {
@@ -285,7 +378,7 @@ class _CoachBubble extends StatelessWidget {
         const CircleAvatar(
           radius: 16,
           backgroundColor: AppColors.border,
-          child: Icon(Icons.person, size: 18, color: AppColors.textMuted),
+          child: Icon(Icons.smart_toy, size: 18, color: AppColors.textMuted),
         ),
         const SizedBox(width: 10),
         Expanded(

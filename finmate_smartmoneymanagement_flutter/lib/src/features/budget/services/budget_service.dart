@@ -40,6 +40,34 @@ class BudgetService {
     return Budget.fromJson(data as Map<String, dynamic>);
   }
 
+  Future<Budget> reassignBudget({
+    required int fromCategoryId,
+    required int toCategoryId,
+    required num amount,
+  }) async {
+    final data = await _client.post(
+      '/api/budgets/reassign',
+      body: {
+        'fromCategoryId': fromCategoryId,
+        'toCategoryId': toCategoryId,
+        'amount': amount,
+      },
+    );
+    return Budget.fromJson(data as Map<String, dynamic>);
+  }
+
+  Future<Budget> updateBudgetAmount({
+    required int budgetId,
+    required num amountLimit,
+    required BudgetPeriod period,
+  }) async {
+    final data = await _client.put(
+      '/api/budgets/$budgetId',
+      body: {'amountLimit': amountLimit, 'period': period.apiValue},
+    );
+    return Budget.fromJson(data as Map<String, dynamic>);
+  }
+
   Future<Map<String, dynamic>> createBudget({
     required String name,
     required int categoryId,

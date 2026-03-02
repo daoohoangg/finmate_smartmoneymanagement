@@ -40,18 +40,21 @@ class CategoryUi {
 
     final parsedDecimal = int.tryParse(raw);
     if (parsedDecimal != null) {
-      return _codepointMap[parsedDecimal] ?? _fallbackIcon;
+      return _iconFromCodepoint(parsedDecimal);
     }
 
     final parsedHex = _tryParseHex(raw);
     if (parsedHex != null) {
-      return _codepointMap[parsedHex] ?? _fallbackIcon;
+      return _iconFromCodepoint(parsedHex);
     }
 
     return _fallbackIcon;
   }
 
-  static Color colorFromString(String? value, {Color fallback = const Color(0xFF94A3B8)}) {
+  static Color colorFromString(
+    String? value, {
+    Color fallback = const Color(0xFF94A3B8),
+  }) {
     if (value == null || value.trim().isEmpty) return fallback;
     final raw = value.trim();
     final parsedInt = _tryParseColorInt(raw);
@@ -94,5 +97,12 @@ class CategoryUi {
     }
 
     return int.tryParse(cleaned, radix: 16);
+  }
+
+  static IconData _iconFromCodepoint(int codepoint) {
+    if (codepoint <= 0) return _fallbackIcon;
+    final mapped = _codepointMap[codepoint];
+    if (mapped != null) return mapped;
+    return IconData(codepoint, fontFamily: 'MaterialIcons');
   }
 }

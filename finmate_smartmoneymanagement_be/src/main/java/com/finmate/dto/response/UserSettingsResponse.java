@@ -14,4 +14,7 @@ public class UserSettingsResponse {
     private Integer budgetAlertThreshold;
     private Integer roundingScale;
     private String roundingMode;
+    private Integer necessaryAllocationPercent;
+    private Integer accumulationAllocationPercent;
+    private Integer flexibilityAllocationPercent;
 }

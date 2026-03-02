@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../shared/widgets/finmate_bottom_nav.dart';
 import '../../shared/widgets/primary_button.dart';
+import 'services/allocation_plan_service.dart';
 import '../transactions/services/transaction_service.dart';
-import 'fix_overspending_screen.dart';
+import 'manage_budget_screen.dart';
 
 double _safeFiniteDouble(Object? value) {
   if (value is num) {
@@ -33,13 +34,17 @@ class _ManualAllocationScreenState extends State<ManualAllocationScreen> {
   static const double _recommendedFlexibility = 20;
 
   final TransactionService _transactionService = TransactionService();
+  final AllocationPlanService _allocationPlanService = AllocationPlanService();
 
   double _necessary = _recommendedNecessary;
   double _accumulation = _recommendedAccumulation;
   double _flexibility = _recommendedFlexibility;
   double _baseAmount = 0;
   bool _isLoadingBaseAmount = true;
+  bool _isLoadingPlan = true;
+  bool _isSavingPlan = false;
   String? _baseAmountError;
+  String? _planError;
 
   double get _total => _necessary + _accumulation + _flexibility;
 
@@ -47,6 +52,7 @@ class _ManualAllocationScreenState extends State<ManualAllocationScreen> {
   void initState() {
     super.initState();
     _loadBaseAmount();
+    _loadAllocationPlan();
   }
 
   void _resetToRecommended() {
@@ -90,6 +96,29 @@ class _ManualAllocationScreenState extends State<ManualAllocationScreen> {
     }
   }
 
+  Future<void> _loadAllocationPlan() async {
+    setState(() {
+      _isLoadingPlan = true;
+      _planError = null;
+    });
+    try {
+      final plan = await _allocationPlanService.getAllocationPlan();
+      if (!mounted) return;
+      setState(() {
+        _necessary = plan.necessary;
+        _accumulation = plan.accumulation;
+        _flexibility = plan.flexibility;
+        _isLoadingPlan = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _planError = e.toString();
+        _isLoadingPlan = false;
+      });
+    }
+  }
+
   double _toDouble(Object? value) {
     if (value is num) return _safeFiniteDouble(value);
     return _safeFiniteDouble(double.tryParse(value?.toString() ?? ''));
@@ -104,6 +133,45 @@ class _ManualAllocationScreenState extends State<ManualAllocationScreen> {
     );
     final prefix = rounded < 0 ? '-' : '';
     return '$prefix$separatedđ';
+  }
+
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _saveCustomPlan() async {
+    if (_isSavingPlan) return;
+    final total = _safeFiniteDouble(_total);
+    if ((total - 100).abs() > 0.1) {
+      _showSnack('Total allocation must equal 100%');
+      return;
+    }
+
+    setState(() => _isSavingPlan = true);
+    try {
+      final savedPlan = await _allocationPlanService.saveAllocationPlan(
+        necessary: _necessary,
+        accumulation: _accumulation,
+        flexibility: _flexibility,
+      );
+      if (!mounted) return;
+      setState(() {
+        _necessary = savedPlan.necessary;
+        _accumulation = savedPlan.accumulation;
+        _flexibility = savedPlan.flexibility;
+      });
+      _showSnack('Custom plan saved successfully');
+      Navigator.pushNamed(context, ManageBudgetScreen.routeName);
+    } catch (e) {
+      if (!mounted) return;
+      _showSnack(e.toString());
+    } finally {
+      if (mounted) {
+        setState(() => _isSavingPlan = false);
+      }
+    }
   }
 
   @override
@@ -121,9 +189,7 @@ class _ManualAllocationScreenState extends State<ManualAllocationScreen> {
     final necessaryAmount = baseAmount * (necessaryPercent / 100);
     final accumulationAmount = baseAmount * (accumulationPercent / 100);
     final flexibilityAmount = baseAmount * (flexibilityPercent / 100);
-    final baseAmountText = _isLoadingBaseAmount
-        ? '--'
-        : _formatVnd(baseAmount);
+    final baseAmountText = _isLoadingBaseAmount ? '--' : _formatVnd(baseAmount);
 
     return Scaffold(
       appBar: AppBar(
@@ -135,7 +201,10 @@ class _ManualAllocationScreenState extends State<ManualAllocationScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: AppColors.textMuted),
-            onPressed: _loadBaseAmount,
+            onPressed: () {
+              _loadBaseAmount();
+              _loadAllocationPlan();
+            },
           ),
         ],
       ),
@@ -204,9 +273,7 @@ class _ManualAllocationScreenState extends State<ManualAllocationScreen> {
                         Text(
                           'Total balance:',
                           style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: AppColors.textSecondary,
-                              ),
+                              ?.copyWith(color: AppColors.textSecondary),
                         ),
                         const Spacer(),
                         Text(
@@ -224,6 +291,15 @@ class _ManualAllocationScreenState extends State<ManualAllocationScreen> {
                     const SizedBox(height: 8),
                     Text(
                       _baseAmountError!,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.primaryRed,
+                      ),
+                    ),
+                  ],
+                  if (_planError != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      _planError!,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: AppColors.primaryRed,
                       ),
@@ -293,17 +369,13 @@ class _ManualAllocationScreenState extends State<ManualAllocationScreen> {
                   PrimaryButton(
                     label: 'Save Custom Plan',
                     color: AppColors.primaryBlue,
-                    onPressed: () {
-                      Navigator.pushNamed(
-                        context,
-                        FixOverspendingScreen.routeName,
-                      );
-                    },
+                    isLoading: _isSavingPlan,
+                    onPressed: _isLoadingPlan ? null : _saveCustomPlan,
                   ),
                   const SizedBox(height: 10),
                   Center(
                     child: TextButton(
-                      onPressed: _resetToRecommended,
+                      onPressed: _isSavingPlan ? null : _resetToRecommended,
                       child: const Text(
                         'Reset to Recommended',
                         style: TextStyle(color: AppColors.primaryBlue),
@@ -476,9 +548,9 @@ class _AmountPill extends StatelessWidget {
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppColors.textSecondary,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 2),
           Text(

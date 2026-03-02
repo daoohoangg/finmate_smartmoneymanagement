@@ -16,6 +16,10 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class UserSettingsServiceImpl implements UserSettingsService {
 
+    private static final int DEFAULT_NECESSARY_ALLOCATION_PERCENT = 60;
+    private static final int DEFAULT_ACCUMULATION_ALLOCATION_PERCENT = 20;
+    private static final int DEFAULT_FLEXIBILITY_ALLOCATION_PERCENT = 20;
+
     private final UserSettingsRepository userSettingsRepository;
     private final UserRepository userRepository;
 
@@ -25,6 +29,9 @@ public class UserSettingsServiceImpl implements UserSettingsService {
                 .orElse(null);
         if (settings == null) {
             return createDefaultSettings(userId);
+        }
+        if (applyAllocationDefaults(settings)) {
+            settings = userSettingsRepository.save(settings);
         }
         return mapToResponse(settings);
     }
@@ -61,6 +68,16 @@ public class UserSettingsServiceImpl implements UserSettingsService {
         if (request.getRoundingMode() != null) {
             settings.setRoundingMode(request.getRoundingMode());
         }
+        if (request.getNecessaryAllocationPercent() != null) {
+            settings.setNecessaryAllocationPercent(request.getNecessaryAllocationPercent());
+        }
+        if (request.getAccumulationAllocationPercent() != null) {
+            settings.setAccumulationAllocationPercent(request.getAccumulationAllocationPercent());
+        }
+        if (request.getFlexibilityAllocationPercent() != null) {
+            settings.setFlexibilityAllocationPercent(request.getFlexibilityAllocationPercent());
+        }
+        applyAllocationDefaults(settings);
 
         UserSettings updatedSettings = userSettingsRepository.save(settings);
         return mapToResponse(updatedSettings);
@@ -80,9 +97,29 @@ public class UserSettingsServiceImpl implements UserSettingsService {
         settings.setBudgetAlertThreshold(80);
         settings.setRoundingScale(2);
         settings.setRoundingMode("HALF_UP");
+        settings.setNecessaryAllocationPercent(DEFAULT_NECESSARY_ALLOCATION_PERCENT);
+        settings.setAccumulationAllocationPercent(DEFAULT_ACCUMULATION_ALLOCATION_PERCENT);
+        settings.setFlexibilityAllocationPercent(DEFAULT_FLEXIBILITY_ALLOCATION_PERCENT);
 
         UserSettings savedSettings = userSettingsRepository.save(settings);
         return mapToResponse(savedSettings);
+    }
+
+    private boolean applyAllocationDefaults(UserSettings settings) {
+        boolean updated = false;
+        if (settings.getNecessaryAllocationPercent() == null) {
+            settings.setNecessaryAllocationPercent(DEFAULT_NECESSARY_ALLOCATION_PERCENT);
+            updated = true;
+        }
+        if (settings.getAccumulationAllocationPercent() == null) {
+            settings.setAccumulationAllocationPercent(DEFAULT_ACCUMULATION_ALLOCATION_PERCENT);
+            updated = true;
+        }
+        if (settings.getFlexibilityAllocationPercent() == null) {
+            settings.setFlexibilityAllocationPercent(DEFAULT_FLEXIBILITY_ALLOCATION_PERCENT);
+            updated = true;
+        }
+        return updated;
     }
 
     private UserSettingsResponse mapToResponse(UserSettings settings) {
@@ -94,6 +131,9 @@ public class UserSettingsServiceImpl implements UserSettingsService {
                 settings.getNotificationEnabled(),
                 settings.getBudgetAlertThreshold(),
                 settings.getRoundingScale(),
-                settings.getRoundingMode());
+                settings.getRoundingMode(),
+                settings.getNecessaryAllocationPercent(),
+                settings.getAccumulationAllocationPercent(),
+                settings.getFlexibilityAllocationPercent());
     }
 }

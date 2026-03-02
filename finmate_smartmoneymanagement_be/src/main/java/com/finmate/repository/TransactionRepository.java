@@ -8,12 +8,15 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
     List<Transaction> findByUserId(UUID userId);
 
     List<Transaction> findByUserIdOrderByTransactionDateDesc(UUID userId);
+
+    Optional<Transaction> findByIdAndUserId(Long id, UUID userId);
 
     List<Transaction> findByWalletId(Long walletId);
 

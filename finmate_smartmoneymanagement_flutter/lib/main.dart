@@ -27,7 +27,7 @@ import 'src/features/analytics/trend_analysis_screen.dart';
 import 'src/features/dashboard/monthly_dashboard_screen.dart';
 import 'src/features/calendar/weekly_calendar_screen.dart';
 import 'src/features/onboarding/onboarding_flow_screen.dart';
-import 'src/features/planning/fix_overspending_screen.dart';
+import 'src/features/planning/manage_budget_screen.dart';
 import 'src/features/planning/manual_allocation_screen.dart';
 import 'src/features/planning/plan_recommendation_screen.dart';
 import 'src/features/profile/change_password_screen.dart';
@@ -44,25 +44,31 @@ import 'src/features/transactions/transactions_list_screen.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SessionStorage.instance.init();
-  runApp(const FinMateApp());
+  runApp(FinMateApp());
 }
 
 class FinMateApp extends StatelessWidget {
   const FinMateApp({super.key});
 
+  Widget _buildLanding(bool hasSession) {
+    if (hasSession) {
+      return MonthlyDashboardScreen();
+    }
+    return LoginScreen();
+  }
+
   @override
   Widget build(BuildContext context) {
     final storage = SessionStorage.instance;
     final hasSession = storage.token != null;
-    final initialRoute = hasSession
-        ? MonthlyDashboardScreen.routeName
-        : LoginScreen.routeName;
     return MaterialApp(
+      key: ValueKey<bool>(hasSession),
       debugShowCheckedModeBanner: false,
       title: 'FinMate',
       theme: buildAppTheme(),
-      initialRoute: initialRoute,
+      initialRoute: '/',
       routes: {
+        '/': (_) => _buildLanding(hasSession),
         LoginScreen.routeName: (_) => const LoginScreen(),
         RegisterScreen.routeName: (_) => const RegisterScreen(),
         ForgotPasswordScreen.routeName: (_) => const ForgotPasswordScreen(),
@@ -104,7 +110,7 @@ class FinMateApp extends StatelessWidget {
         PlanRecommendationScreen.routeName: (_) =>
             const PlanRecommendationScreen(),
         ManualAllocationScreen.routeName: (_) => const ManualAllocationScreen(),
-        FixOverspendingScreen.routeName: (_) => const FixOverspendingScreen(),
+        ManageBudgetScreen.routeName: (_) => const ManageBudgetScreen(),
         RecurringSetupScreen.routeName: (_) => const RecurringSetupScreen(),
         RecurringCustomScreen.routeName: (_) => const RecurringCustomScreen(),
         ManageCategoriesScreen.routeName: (_) => const ManageCategoriesScreen(),
@@ -113,6 +119,10 @@ class FinMateApp extends StatelessWidget {
         ChangePasswordScreen.routeName: (_) => const ChangePasswordScreen(),
         SettingsScreen.routeName: (_) => const SettingsScreen(),
       },
+      onUnknownRoute: (settings) => MaterialPageRoute(
+        settings: settings,
+        builder: (_) => _buildLanding(hasSession),
+      ),
     );
   }
 }

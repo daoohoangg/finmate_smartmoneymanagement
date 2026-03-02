@@ -10,7 +10,7 @@ import java.util.UUID;
 public interface TransactionService {
     TransactionResponse createTransaction(UUID userId, TransactionRequest request);
 
-    TransactionResponse getTransactionById(Long id);
+    TransactionResponse getTransactionById(UUID userId, Long id);
 
     List<TransactionResponse> getAllTransactionsByUser(UUID userId);
 
@@ -18,7 +18,7 @@ public interface TransactionService {
             LocalDateTime startDate, LocalDateTime endDate, String keyword, java.math.BigDecimal minAmount,
             java.math.BigDecimal maxAmount);
 
-    TransactionResponse updateTransaction(Long id, TransactionRequest request);
+    TransactionResponse updateTransaction(UUID userId, Long id, TransactionRequest request);
 
-    void deleteTransaction(Long id);
+    void deleteTransaction(UUID userId, Long id);
 }

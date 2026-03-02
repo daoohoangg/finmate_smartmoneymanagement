@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../shared/widgets/primary_button.dart';
 import '../../shared/widgets/finmate_bottom_nav.dart';
-import 'fix_overspending_screen.dart';
+import 'manage_budget_screen.dart';
 import 'manual_allocation_screen.dart';
 
 class PlanRecommendationScreen extends StatelessWidget {
@@ -24,7 +24,9 @@ class PlanRecommendationScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.overview),
+      bottomNavigationBar: const FinMateBottomNav(
+        active: FinMateNavItem.overview,
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -36,18 +38,16 @@ class PlanRecommendationScreen extends StatelessWidget {
                 children: [
                   Text(
                     'Personalized Recommendation',
-                    style: Theme.of(context)
-                        .textTheme
-                        .headlineSmall
-                        ?.copyWith(fontWeight: FontWeight.w700),
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     'Crafted specifically for your goals.',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: AppColors.textSecondary),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   _ConfidenceChip(),
@@ -56,18 +56,26 @@ class PlanRecommendationScreen extends StatelessWidget {
                     spacing: 12,
                     runSpacing: 12,
                     children: [
-                      _PlanPill(label: 'Necessary', value: '${_necessaryPercent}%'),
-                      _PlanPill(label: 'Accumulation', value: '${_accumulationPercent}%'),
-                      _PlanPill(label: 'Flexibility', value: '${_flexibilityPercent}%'),
+                      _PlanPill(
+                        label: 'Necessary',
+                        value: '$_necessaryPercent%',
+                      ),
+                      _PlanPill(
+                        label: 'Accumulation',
+                        value: '$_accumulationPercent%',
+                      ),
+                      _PlanPill(
+                        label: 'Flexibility',
+                        value: '$_flexibilityPercent%',
+                      ),
                     ],
                   ),
                   const SizedBox(height: 20),
                   Text(
                     'Allocation Split',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(fontWeight: FontWeight.w600),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   _AllocationBar(
@@ -95,7 +103,7 @@ class PlanRecommendationScreen extends StatelessWidget {
                     onPressed: () {
                       Navigator.pushNamed(
                         context,
-                        FixOverspendingScreen.routeName,
+                        ManageBudgetScreen.routeName,
                       );
                     },
                   ),
@@ -137,10 +145,10 @@ class _ConfidenceChip extends StatelessWidget {
       child: Text(
         'CONFIDENCE: HIGH',
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppColors.primaryBlue,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.4,
-            ),
+          color: AppColors.primaryBlue,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.4,
+        ),
       ),
     );
   }
@@ -163,7 +171,7 @@ class _PlanPill extends StatelessWidget {
         border: Border.all(color: AppColors.border),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -174,18 +182,16 @@ class _PlanPill extends StatelessWidget {
         children: [
           Text(
             value,
-            style: Theme.of(context)
-                .textTheme
-                .titleLarge
-                ?.copyWith(fontSize: 18),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontSize: 18),
           ),
           const SizedBox(height: 4),
           Text(
             label,
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: AppColors.textSecondary),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
           ),
         ],
       ),
@@ -261,18 +267,16 @@ class _WhyFitsCard extends StatelessWidget {
               children: [
                 Text(
                   'Why this fits',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(fontWeight: FontWeight.w600),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Based on your survey results, we recommend balancing stability and growth. This split protects your essentials while moving you toward long-term goals.',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: AppColors.textSecondary),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ),
