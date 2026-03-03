@@ -36,7 +36,7 @@ class AuthService {
     return AuthResponse.fromJson(data as Map<String, dynamic>);
   }
 
-  /// Login with Google. 
+  /// Login with Google.
   /// [idToken] is used for mobile/desktop platforms.
   /// [accessToken] is used for web platform.
   Future<AuthResponse> loginWithGoogle({
@@ -52,5 +52,40 @@ class AuthService {
       body: body,
     );
     return AuthResponse.fromJson(data as Map<String, dynamic>);
+  }
+
+  /// Sends a 6-digit OTP to the given email.
+  Future<void> forgotPassword(String email) async {
+    await _client.post(
+      '/api/auth/forgot-password',
+      body: {'email': email},
+    );
+  }
+
+  /// Verifies the OTP and returns a one-time reset token.
+  Future<String> verifyOtp({
+    required String email,
+    required String otp,
+  }) async {
+    final data = await _client.post(
+      '/api/auth/verify-otp',
+      body: {'email': email, 'otp': otp},
+    );
+    final map = data as Map<String, dynamic>;
+    return map['resetToken'] as String;
+  }
+
+  /// Resets the password using the token from [verifyOtp].
+  Future<void> resetPassword({
+    required String resetToken,
+    required String newPassword,
+  }) async {
+    await _client.post(
+      '/api/auth/reset-password',
+      body: {
+        'resetToken': resetToken,
+        'newPassword': newPassword,
+      },
+    );
   }
 }
