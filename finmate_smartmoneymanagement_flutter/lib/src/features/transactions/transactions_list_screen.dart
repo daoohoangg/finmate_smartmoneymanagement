@@ -15,7 +15,8 @@ class TransactionsListScreen extends StatefulWidget {
   State<TransactionsListScreen> createState() => _TransactionsListScreenState();
 }
 
-class _TransactionsListScreenState extends State<TransactionsListScreen> {
+class _TransactionsListScreenState extends State<TransactionsListScreen>
+    with WidgetsBindingObserver {
   final TransactionService _transactionService = TransactionService();
 
   bool _isLoading = true;
@@ -25,7 +26,21 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadTransactions();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadTransactions();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   Future<void> _loadTransactions() async {

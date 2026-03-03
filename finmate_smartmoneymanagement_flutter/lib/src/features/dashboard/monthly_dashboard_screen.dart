@@ -24,7 +24,8 @@ class MonthlyDashboardScreen extends StatefulWidget {
   State<MonthlyDashboardScreen> createState() => _MonthlyDashboardScreenState();
 }
 
-class _MonthlyDashboardScreenState extends State<MonthlyDashboardScreen> {
+class _MonthlyDashboardScreenState extends State<MonthlyDashboardScreen>
+    with WidgetsBindingObserver {
   final TransactionService _transactionService = TransactionService();
 
   bool _loadingTotals = true;
@@ -36,7 +37,21 @@ class _MonthlyDashboardScreenState extends State<MonthlyDashboardScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadTotals();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadTotals();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   Future<void> _loadTotals() async {
@@ -142,11 +157,14 @@ class _MonthlyDashboardScreenState extends State<MonthlyDashboardScreen> {
       backgroundColor: _HomeColors.background,
       body: SafeArea(
         bottom: false,
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+        child: RefreshIndicator(
+          onRefresh: _loadTotals,
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 420),
@@ -169,10 +187,11 @@ class _MonthlyDashboardScreenState extends State<MonthlyDashboardScreen> {
                     ),
                   ),
                 ),
+                ),
               ),
-            ),
-            const FinMateBottomNav(active: FinMateNavItem.overview),
-          ],
+              const FinMateBottomNav(active: FinMateNavItem.overview),
+            ],
+          ),
         ),
       ),
     );
