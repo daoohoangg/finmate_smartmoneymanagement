@@ -6,6 +6,7 @@ import '../dashboard/monthly_dashboard_screen.dart';
 import 'services/auth_service.dart';
 import 'services/google_sign_in_service.dart';
 import '../../shared/widgets/app_text_field.dart';
+import '../../shared/widgets/app_toast.dart';
 import '../../shared/widgets/primary_button.dart';
 import 'forgot_password_screen.dart';
 import 'register_screen.dart';
@@ -37,7 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
     if (email.isEmpty || password.isEmpty) {
-      _showSnack('Email and password are required');
+      AppToast.error(context, 'Email and password are required');
       return;
     }
     setState(() => _isLoading = true);
@@ -55,7 +56,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, MonthlyDashboardScreen.routeName);
     } catch (e) {
-      _showSnack(e.toString());
+      if (mounted) AppToast.error(context, AppToast.friendlyMessage(e));
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -69,9 +70,7 @@ class _LoginScreenState extends State<LoginScreen> {
       // Use GoogleSignInService to get token result
       final result = await GoogleSignInService.instance.signIn();
       if (result == null || !result.isValid) {
-        if (mounted) {
-          _showSnack('Google Sign-In was cancelled');
-        }
+        if (mounted) AppToast.info(context, 'Google Sign-In was cancelled');
         return;
       }
 
@@ -90,7 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, MonthlyDashboardScreen.routeName);
     } catch (e) {
-      _showSnack(e.toString());
+      if (mounted) AppToast.error(context, AppToast.friendlyMessage(e));
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -98,11 +97,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _showSnack(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
-  }
 
   @override
   Widget build(BuildContext context) {

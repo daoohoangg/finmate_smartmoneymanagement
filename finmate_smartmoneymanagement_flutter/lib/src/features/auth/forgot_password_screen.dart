@@ -2,12 +2,53 @@ import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../shared/widgets/app_text_field.dart';
+import '../../shared/widgets/app_toast.dart';
 import '../../shared/widgets/primary_button.dart';
+import 'services/auth_service.dart';
 
-class ForgotPasswordScreen extends StatelessWidget {
+/// Screen 1: User enters email → OTP sent
+class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
 
   static const String routeName = '/forgot';
+
+  @override
+  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
+}
+
+class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
+  final _emailController = TextEditingController();
+  final _authService = AuthService();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleSend() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      AppToast.error(context, 'Please enter your email');
+      return;
+    }
+    setState(() => _isLoading = true);
+    try {
+      await _authService.forgotPassword(email);
+      if (!mounted) return;
+      Navigator.pushNamed(
+        context,
+        '/otp-verify',
+        arguments: email,
+      );
+    } catch (e) {
+      if (mounted) AppToast.error(context, AppToast.friendlyMessage(e));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -37,38 +78,36 @@ class ForgotPasswordScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Enter your registered email to receive an OTP code to your inbox.',
+                    'Enter your registered email to receive a 6-digit OTP code.',
                     style: Theme.of(context)
                         .textTheme
                         .bodySmall
                         ?.copyWith(color: AppColors.textSecondary),
                   ),
-                  const SizedBox(height: 20),
-                  const AppTextField(
+                  const SizedBox(height: 24),
+                  AppTextField(
                     label: 'Email Address',
                     hint: 'example@email.com',
                     keyboardType: TextInputType.emailAddress,
-                    suffix: Icon(Icons.mail_outline, color: AppColors.textMuted),
+                    controller: _emailController,
+                    suffix: const Icon(Icons.mail_outline,
+                        color: AppColors.textMuted),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
                   PrimaryButton(
                     label: 'Send Verification Code',
                     color: AppColors.primaryRed,
-                    onPressed: () {},
+                    isLoading: _isLoading,
+                    onPressed: _isLoading ? null : _handleSend,
                   ),
                   const SizedBox(height: 16),
                   Center(
                     child: TextButton.icon(
                       onPressed: () => Navigator.pop(context),
-                      icon: const Icon(
-                        Icons.arrow_back,
-                        color: AppColors.primaryRed,
-                        size: 18,
-                      ),
-                      label: const Text(
-                        'Back to Login',
-                        style: TextStyle(color: AppColors.primaryRed),
-                      ),
+                      icon: const Icon(Icons.arrow_back,
+                          color: AppColors.primaryRed, size: 18),
+                      label: const Text('Back to Login',
+                          style: TextStyle(color: AppColors.primaryRed)),
                     ),
                   ),
                 ],

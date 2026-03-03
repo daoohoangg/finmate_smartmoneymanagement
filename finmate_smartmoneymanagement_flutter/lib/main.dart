@@ -4,7 +4,9 @@ import 'src/core/theme/app_theme.dart';
 import 'src/core/storage/session_storage.dart';
 import 'src/features/auth/forgot_password_screen.dart';
 import 'src/features/auth/login_screen.dart';
+import 'src/features/auth/otp_verify_screen.dart';
 import 'src/features/auth/register_screen.dart';
+import 'src/features/auth/reset_password_screen.dart';
 import 'src/features/ai_coach/ai_coach_chat_screen.dart';
 import 'src/features/ai_coach/ai_coach_intro_screen.dart';
 import 'src/features/budget/allocate_funds_done_screen.dart';
@@ -72,6 +74,8 @@ class FinMateApp extends StatelessWidget {
         LoginScreen.routeName: (_) => const LoginScreen(),
         RegisterScreen.routeName: (_) => const RegisterScreen(),
         ForgotPasswordScreen.routeName: (_) => const ForgotPasswordScreen(),
+        OtpVerifyScreen.routeName: (_) => const OtpVerifyScreen(),
+        ResetPasswordScreen.routeName: (_) => const ResetPasswordScreen(),
         AiCoachIntroScreen.routeName: (_) => const AiCoachIntroScreen(),
         AiCoachChatScreen.routeName: (_) => const AiCoachChatScreen(),
         MonthlyDashboardScreen.routeName: (_) => const MonthlyDashboardScreen(),
