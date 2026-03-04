@@ -26,6 +26,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -75,6 +76,13 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponse loginWithGoogle(GoogleLoginRequest request) {
+        final List<String> normalizedAllowedClientIds = allowedClientIds == null
+                ? List.of()
+                : allowedClientIds.stream()
+                        .map(String::trim)
+                        .filter(id -> !id.isEmpty())
+                        .toList();
+
         String email;
         String name;
 
@@ -100,7 +108,7 @@ public class AuthServiceImpl implements AuthService {
                 throw new RuntimeException("Failed to verify Google access token: " + e.getMessage());
             }
         } else if (request.getIdToken() != null && !request.getIdToken().isBlank()) {
-            if (allowedClientIds == null || allowedClientIds.isEmpty()) {
+            if (normalizedAllowedClientIds.isEmpty()) {
                 throw new RuntimeException("Google Sign-In is not configured");
             }
             RestTemplate restTemplate = new RestTemplate();
@@ -113,7 +121,7 @@ public class AuthServiceImpl implements AuthService {
             Object aud = tokenInfo.get("aud");
             Object emailObj = tokenInfo.get("email");
             Object emailVerified = tokenInfo.get("email_verified");
-            if (aud == null || !allowedClientIds.contains(aud.toString()))
+            if (aud == null || !normalizedAllowedClientIds.contains(aud.toString()))
                 throw new RuntimeException("Google token audience mismatch");
             if (emailObj == null)
                 throw new RuntimeException("Google token missing email");

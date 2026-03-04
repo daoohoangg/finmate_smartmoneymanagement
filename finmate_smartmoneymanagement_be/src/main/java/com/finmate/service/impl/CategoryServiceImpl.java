@@ -29,6 +29,21 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class CategoryServiceImpl implements CategoryService {
+    private static final List<DefaultSubcategoryTemplate> NECESSARY_DEFAULT_SUBCATEGORIES = List.of(
+            new DefaultSubcategoryTemplate("Market", "local_grocery_store_outlined", "#FB923C"),
+            new DefaultSubcategoryTemplate("Food", "restaurant_outlined", "#F97316"),
+            new DefaultSubcategoryTemplate("Transport", "directions_car_filled", "#60A5FA"),
+            new DefaultSubcategoryTemplate("Bill", "receipt_long", "#34D399"),
+            new DefaultSubcategoryTemplate("House", "home_work_outlined", "#A78BFA"));
+
+    private static final List<DefaultSubcategoryTemplate> ACCUMULATION_DEFAULT_SUBCATEGORIES = List.of(
+            new DefaultSubcategoryTemplate("Saving", "savings_outlined", "#2CB67D"),
+            new DefaultSubcategoryTemplate("Learning", "account_balance_outlined", "#6366F1"));
+
+    private static final List<DefaultSubcategoryTemplate> FLEXIBILITY_DEFAULT_SUBCATEGORIES = List.of(
+            new DefaultSubcategoryTemplate("Shopping", "shopping_cart_outlined", "#F59E0B"),
+            new DefaultSubcategoryTemplate("Entertainment", "movie_outlined", "#EC4899"),
+            new DefaultSubcategoryTemplate("Charity", "favorite_border", "#F43F5E"));
 
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
@@ -92,6 +107,7 @@ public class CategoryServiceImpl implements CategoryService {
     public List<CategoryResponse> getCategoriesByType(UUID userId, CategoryType type) {
         if (type == CategoryType.EXPENSE) {
             ensureMainExpenseCategories(userId);
+            ensureDefaultExpenseSubcategories(userId);
         }
         return categoryRepository.findByUserIdAndType(userId, type).stream()
                 .map(this::mapToResponse)
@@ -367,5 +383,71 @@ public class CategoryServiceImpl implements CategoryService {
                 .filter(c -> group.equals(resolveGroup(c)))
                 .findFirst()
                 .orElse(null);
+    }
+
+    private void ensureDefaultExpenseSubcategories(UUID userId) {
+        List<Category> expenseCategories = categoryRepository.findByUserIdAndType(userId, CategoryType.EXPENSE);
+        Category necessaryParent = findPrimaryByGroup(expenseCategories, CategoryGroup.NECESSARY);
+        Category accumulationParent = findPrimaryByGroup(expenseCategories, CategoryGroup.ACCUMULATION);
+        Category flexibilityParent = findPrimaryByGroup(expenseCategories, CategoryGroup.FLEXIBILITY);
+
+        ensureSubcategories(expenseCategories, necessaryParent, NECESSARY_DEFAULT_SUBCATEGORIES);
+        ensureSubcategories(expenseCategories, accumulationParent, ACCUMULATION_DEFAULT_SUBCATEGORIES);
+        ensureSubcategories(expenseCategories, flexibilityParent, FLEXIBILITY_DEFAULT_SUBCATEGORIES);
+    }
+
+    private Category findPrimaryByGroup(List<Category> expenseCategories, CategoryGroup group) {
+        return expenseCategories.stream()
+                .filter(Objects::nonNull)
+                .filter(c -> c.getParent() == null)
+                .filter(c -> group.equals(resolveGroup(c)))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private void ensureSubcategories(
+            List<Category> existingExpenseCategories,
+            Category parent,
+            List<DefaultSubcategoryTemplate> templates) {
+        if (parent == null || templates == null || templates.isEmpty()) {
+            return;
+        }
+
+        var existingNames = existingExpenseCategories.stream()
+                .filter(Objects::nonNull)
+                .filter(c -> c.getParent() != null)
+                .filter(c -> Objects.equals(c.getParent().getId(), parent.getId()))
+                .map(Category::getName)
+                .filter(StringUtils::hasText)
+                .map(this::normalizeName)
+                .collect(Collectors.toSet());
+
+        for (DefaultSubcategoryTemplate template : templates) {
+            String normalized = normalizeName(template.name());
+            if (existingNames.contains(normalized)) {
+                continue;
+            }
+            Category child = new Category();
+            child.setUser(parent.getUser());
+            child.setType(CategoryType.EXPENSE);
+            child.setCategoryGroup(resolveGroup(parent));
+            child.setIsPrimary(false);
+            child.setParent(parent);
+            child.setName(template.name());
+            child.setIcon(template.icon());
+            child.setColor(template.color());
+            categoryRepository.save(child);
+            existingNames.add(normalized);
+        }
+    }
+
+    private String normalizeName(String value) {
+        if (!StringUtils.hasText(value)) {
+            return "";
+        }
+        return value.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private record DefaultSubcategoryTemplate(String name, String icon, String color) {
     }
 }

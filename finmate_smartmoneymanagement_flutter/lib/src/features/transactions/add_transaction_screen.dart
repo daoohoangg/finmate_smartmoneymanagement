@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -9,9 +7,11 @@ import 'package:image_picker/image_picker.dart';
 import '../../core/constants/app_colors.dart';
 import '../../shared/widgets/primary_button.dart';
 import '../../shared/widgets/finmate_bottom_nav.dart';
+import '../categories/create_category_screen.dart';
 import '../categories/models/category.dart' as fm;
 import '../categories/services/category_service.dart';
 import '../categories/utils/category_ui.dart';
+import '../planning/services/allocation_plan_service.dart';
 import '../wallets/models/wallet.dart';
 import '../wallets/services/wallet_service.dart';
 import 'models/transaction.dart';
@@ -31,17 +31,16 @@ class AddTransactionScreen extends StatefulWidget {
 class _AddTransactionScreenState extends State<AddTransactionScreen> {
   late bool _isExpense;
   int? _selectedCategoryId;
-  int? _selectedParentCategoryId;
   int? _selectedWalletId;
   List<fm.Category>? _categories;
   List<fm.Category>? _parentCategories;
-  Map<int, List<fm.Category>> _childrenByParent = const <int, List<fm.Category>>{};
   List<Wallet>? _wallets;
   bool _isLoading = false;
   bool _isSaving = false;
   String? _errorMessage;
   DateTime? _selectedDate;
   bool _isSeedingWallets = false;
+  Map<int, double> _parentAllocatedAmounts = const <int, double>{};
   Uint8List? _receiptBytes;
   String? _receiptName;
   int? _receiptSize;
@@ -54,12 +53,16 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   WalletService? _walletService;
   TransactionService? _transactionService;
   ReceiptUploadService? _receiptUploadService;
+  AllocationPlanService? _allocationPlanService;
 
   CategoryService get _categorySvc => _categoryService ??= CategoryService();
   WalletService get _walletSvc => _walletService ??= WalletService();
-  TransactionService get _transactionSvc => _transactionService ??= TransactionService();
+  TransactionService get _transactionSvc =>
+      _transactionService ??= TransactionService();
   ReceiptUploadService get _receiptUploadSvc =>
       _receiptUploadService ??= ReceiptUploadService();
+  AllocationPlanService get _allocationPlanSvc =>
+      _allocationPlanService ??= AllocationPlanService();
 
   static const int _maxReceiptBytes = 5 * 1024 * 1024;
 
@@ -77,7 +80,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     super.reassemble();
     _categories = null;
     _parentCategories = null;
-    _childrenByParent = const <int, List<fm.Category>>{};
     _wallets = null;
     _selectedDate ??= DateTime.now();
     _loadData();
@@ -101,11 +103,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         wallets = await _ensureDefaultWallets(wallets);
       }
       wallets = List<Wallet>.from(wallets);
-      final order = <String, int>{
-        'cash': 0,
-        'bank account': 1,
-        'card': 2,
-      };
+      final order = <String, int>{'cash': 0, 'bank account': 1, 'card': 2};
       wallets.sort((a, b) {
         final aKey = a.name.trim().toLowerCase();
         final bKey = b.name.trim().toLowerCase();
@@ -119,38 +117,42 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         type: _isExpense ? fm.CategoryType.expense : fm.CategoryType.income,
       );
       if (!mounted) return;
+      var parentCategoriesForAllocation = const <fm.Category>[];
       setState(() {
         _wallets = wallets;
-        _selectedWalletId = _resolveSelectedWalletId(wallets, _selectedWalletId);
+        _selectedWalletId = _resolveSelectedWalletId(
+          wallets,
+          _selectedWalletId,
+        );
         if (_isExpense) {
           final categoryTree = _buildExpenseCategoryTree(loadedCategories);
           final parentCategories = categoryTree.parentCategories;
           final childrenByParent = categoryTree.childrenByParent;
-          final parentId =
-              (_selectedParentCategoryId != null &&
-                  parentCategories.any((category) => category.id == _selectedParentCategoryId))
-              ? _selectedParentCategoryId
-              : (parentCategories.isNotEmpty ? parentCategories.first.id : null);
-          final childCategories =
-              parentId != null ? (childrenByParent[parentId] ?? const <fm.Category>[]) : const <fm.Category>[];
+          final childCategories = _buildAllSubcategories(
+            parentCategories: parentCategories,
+            childrenByParent: childrenByParent,
+          );
           final selectedCategoryId =
               (_selectedCategoryId != null &&
-                  childCategories.any((category) => category.id == _selectedCategoryId))
+                  childCategories.any(
+                    (category) => category.id == _selectedCategoryId,
+                  ))
               ? _selectedCategoryId
-              : (childCategories.isNotEmpty ? childCategories.first.id : null);
+              : null;
           _parentCategories = parentCategories;
-          _childrenByParent = childrenByParent;
-          _selectedParentCategoryId = parentId;
           _categories = childCategories;
           _selectedCategoryId = selectedCategoryId;
+          parentCategoriesForAllocation = parentCategories;
         } else {
           _parentCategories = const <fm.Category>[];
-          _childrenByParent = const <int, List<fm.Category>>{};
-          _selectedParentCategoryId = null;
           _categories = const <fm.Category>[];
           _selectedCategoryId = null;
+          _parentAllocatedAmounts = const <int, double>{};
         }
       });
+      if (_isExpense) {
+        await _loadParentAllocationLimits(parentCategoriesForAllocation);
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => _errorMessage = e.toString());
@@ -162,13 +164,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   Future<List<Wallet>> _ensureDefaultWallets(List<Wallet> wallets) async {
     _isSeedingWallets = true;
     try {
-      final defaults = <String>[
-        'Cash',
-        'Bank Account',
-        'Card',
-      ];
-      final existingNames =
-          wallets.map((w) => w.name.trim().toLowerCase()).toSet();
+      final defaults = <String>['Cash', 'Bank Account', 'Card'];
+      final existingNames = wallets
+          .map((w) => w.name.trim().toLowerCase())
+          .toSet();
       final created = <Wallet>[];
       for (final name in defaults) {
         if (existingNames.contains(name.toLowerCase())) continue;
@@ -222,27 +221,37 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         type: _isExpense ? fm.CategoryType.expense : fm.CategoryType.income,
       );
       if (!mounted) return;
+      var parentCategoriesForAllocation = const <fm.Category>[];
       setState(() {
         if (_isExpense) {
           final categoryTree = _buildExpenseCategoryTree(loadedCategories);
           final parentCategories = categoryTree.parentCategories;
           final childrenByParent = categoryTree.childrenByParent;
-          final parentId = parentCategories.isNotEmpty ? parentCategories.first.id : null;
-          final childCategories =
-              parentId != null ? (childrenByParent[parentId] ?? const <fm.Category>[]) : const <fm.Category>[];
+          final childCategories = _buildAllSubcategories(
+            parentCategories: parentCategories,
+            childrenByParent: childrenByParent,
+          );
+          final selectedCategoryId =
+              (_selectedCategoryId != null &&
+                  childCategories.any(
+                    (category) => category.id == _selectedCategoryId,
+                  ))
+              ? _selectedCategoryId
+              : null;
           _parentCategories = parentCategories;
-          _childrenByParent = childrenByParent;
-          _selectedParentCategoryId = parentId;
           _categories = childCategories;
-          _selectedCategoryId = childCategories.isNotEmpty ? childCategories.first.id : null;
+          _selectedCategoryId = selectedCategoryId;
+          parentCategoriesForAllocation = parentCategories;
         } else {
           _parentCategories = const <fm.Category>[];
-          _childrenByParent = const <int, List<fm.Category>>{};
-          _selectedParentCategoryId = null;
           _categories = const <fm.Category>[];
           _selectedCategoryId = null;
+          _parentAllocatedAmounts = const <int, double>{};
         }
       });
+      if (_isExpense) {
+        await _loadParentAllocationLimits(parentCategoriesForAllocation);
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => _errorMessage = e.toString());
@@ -254,23 +263,33 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   ({
     List<fm.Category> parentCategories,
     Map<int, List<fm.Category>> childrenByParent,
-  }) _buildExpenseCategoryTree(List<fm.Category> loadedCategories) {
+  })
+  _buildExpenseCategoryTree(List<fm.Category> loadedCategories) {
     final expenseCategories = loadedCategories
         .where((category) => category.type == fm.CategoryType.expense)
         .toList();
     final parentCandidates = expenseCategories
         .where((category) => category.parentId == null)
         .toList();
-    final parentCategories = _selectPrimaryParentCategories(parentCandidates);
+    final parentCategories = _sortParentCategories(parentCandidates);
     final parentIds = parentCategories.map((category) => category.id).toSet();
     final childrenByParent = <int, List<fm.Category>>{};
     for (final category in expenseCategories) {
       final parentId = category.parentId;
       if (parentId == null || !parentIds.contains(parentId)) continue;
-      childrenByParent.putIfAbsent(parentId, () => <fm.Category>[]).add(category);
+      childrenByParent
+          .putIfAbsent(parentId, () => <fm.Category>[])
+          .add(category);
     }
+    for (final parent in parentCategories) {
+      childrenByParent.putIfAbsent(parent.id, () => <fm.Category>[]);
+    }
+    final parentById = <int, fm.Category>{
+      for (final parent in parentCategories) parent.id: parent,
+    };
     for (final entry in childrenByParent.entries) {
-      entry.value.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      final group = parentById[entry.key]?.group;
+      entry.value.sort((a, b) => _compareSubcategory(group, a.name, b.name));
     }
     return (
       parentCategories: parentCategories,
@@ -278,43 +297,76 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     );
   }
 
-  List<fm.Category> _selectPrimaryParentCategories(List<fm.Category> parentCandidates) {
-    final candidates = List<fm.Category>.from(parentCandidates)
+  List<fm.Category> _sortParentCategories(List<fm.Category> parentCandidates) {
+    final sorted = List<fm.Category>.from(parentCandidates)
       ..sort((a, b) {
-        final groupOrderDiff = _categoryGroupOrder(a.group) - _categoryGroupOrder(b.group);
+        final groupOrderDiff =
+            _categoryGroupOrder(a.group) - _categoryGroupOrder(b.group);
         if (groupOrderDiff != 0) return groupOrderDiff;
         if (a.isSystemCategory != b.isSystemCategory) {
           return a.isSystemCategory ? 1 : -1;
         }
         return a.name.toLowerCase().compareTo(b.name.toLowerCase());
       });
+    return _dedupeCategoriesById(sorted);
+  }
 
-    final selected = <fm.Category>[];
-    const preferredGroups = <fm.CategoryGroup>[
-      fm.CategoryGroup.necessary,
-      fm.CategoryGroup.accumulation,
-      fm.CategoryGroup.flexibility,
-    ];
-
-    for (final group in preferredGroups) {
-      for (final category in candidates) {
-        if (category.group == group && !selected.any((item) => item.id == category.id)) {
-          selected.add(category);
-          break;
-        }
-      }
+  List<fm.Category> _buildAllSubcategories({
+    required List<fm.Category> parentCategories,
+    required Map<int, List<fm.Category>> childrenByParent,
+  }) {
+    final allChildren = <fm.Category>[];
+    for (final parent in parentCategories) {
+      allChildren.addAll(childrenByParent[parent.id] ?? const <fm.Category>[]);
     }
+    return _dedupeCategoriesById(allChildren);
+  }
 
-    for (final category in candidates) {
-      if (selected.any((item) => item.id == category.id)) continue;
-      selected.add(category);
-      if (selected.length >= 3) break;
-    }
+  void _selectSubcategory(int? categoryId) {
+    if (!_isExpense) return;
+    setState(() {
+      _selectedCategoryId = categoryId;
+    });
+  }
 
-    if (selected.length > 3) {
-      return selected.take(3).toList();
+  int _compareSubcategory(
+    fm.CategoryGroup? group,
+    String firstName,
+    String secondName,
+  ) {
+    final firstOrder = _subcategoryOrder(group, firstName);
+    final secondOrder = _subcategoryOrder(group, secondName);
+    if (firstOrder != secondOrder) {
+      return firstOrder.compareTo(secondOrder);
     }
-    return selected;
+    return firstName.toLowerCase().compareTo(secondName.toLowerCase());
+  }
+
+  int _subcategoryOrder(fm.CategoryGroup? group, String name) {
+    final normalized = name.trim().toLowerCase();
+    switch (group) {
+      case fm.CategoryGroup.necessary:
+        const necessaryOrder = <String, int>{
+          'market': 0,
+          'food': 1,
+          'transport': 2,
+          'bill': 3,
+          'house': 4,
+        };
+        return necessaryOrder[normalized] ?? 1000;
+      case fm.CategoryGroup.accumulation:
+        const accumulationOrder = <String, int>{'saving': 0, 'learning': 1};
+        return accumulationOrder[normalized] ?? 1000;
+      case fm.CategoryGroup.flexibility:
+        const flexibilityOrder = <String, int>{
+          'shopping': 0,
+          'entertainment': 1,
+          'charity': 2,
+        };
+        return flexibilityOrder[normalized] ?? 1000;
+      case null:
+        return 1000;
+    }
   }
 
   int _categoryGroupOrder(fm.CategoryGroup? group) {
@@ -330,26 +382,520 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     }
   }
 
-  void _selectParentCategory(int parentId) {
-    if (!_isExpense) return;
-    final childCategories = _childrenByParent[parentId] ?? const <fm.Category>[];
-    setState(() {
-      _selectedParentCategoryId = parentId;
-      _categories = childCategories;
-      final currentCategoryId = _selectedCategoryId;
-      if (currentCategoryId != null &&
-          childCategories.any((category) => category.id == currentCategoryId)) {
-        _selectedCategoryId = currentCategoryId;
-      } else {
-        _selectedCategoryId = childCategories.isNotEmpty ? childCategories.first.id : null;
+  Color _parentFallbackColor(fm.CategoryGroup? group) {
+    switch (group) {
+      case fm.CategoryGroup.necessary:
+        return const Color(0xFFF59E0B);
+      case fm.CategoryGroup.accumulation:
+        return const Color(0xFF2CB67D);
+      case fm.CategoryGroup.flexibility:
+        return const Color(0xFF6366F1);
+      case null:
+        return AppColors.primaryBlue;
+    }
+  }
+
+  Future<void> _loadParentAllocationLimits(
+    List<fm.Category> parentCategories,
+  ) async {
+    if (!_isExpense || parentCategories.isEmpty) {
+      if (!mounted) return;
+      setState(() => _parentAllocatedAmounts = const <int, double>{});
+      return;
+    }
+    try {
+      final responses = await Future.wait<dynamic>([
+        _allocationPlanSvc.getAllocationPlan(),
+        _transactionSvc.getTransactions(),
+      ]);
+      if (!mounted) return;
+      final allocationPlan = responses[0] as AllocationPlan;
+      final transactions = responses[1] as List<Map<String, dynamic>>;
+      final spendableAmount = _calculateSpendableAmount(transactions);
+      final allocatedByParent = <int, double>{};
+      for (var index = 0; index < parentCategories.length; index++) {
+        final parent = parentCategories[index];
+        final percent = _allocatedPercentForParent(
+          parent.group,
+          allocationPlan,
+          fallbackIndex: index,
+        );
+        allocatedByParent[parent.id] = spendableAmount * (percent / 100);
       }
-    });
+      setState(() => _parentAllocatedAmounts = allocatedByParent);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _parentAllocatedAmounts = const <int, double>{});
+    }
+  }
+
+  double _calculateSpendableAmount(List<Map<String, dynamic>> transactions) {
+    var income = 0.0;
+    var expense = 0.0;
+    for (final transaction in transactions) {
+      final type = transaction['type']?.toString().toUpperCase();
+      final amount = _toDouble(transaction['amount']);
+      if (type == 'INCOME') {
+        income += amount;
+      } else if (type == 'EXPENSE') {
+        if (_isFundContributionTransaction(transaction)) continue;
+        expense += amount;
+      }
+    }
+    final spendable = income - expense;
+    return spendable < 0 ? 0 : spendable;
+  }
+
+  bool _isFundContributionTransaction(Map<String, dynamic> transaction) {
+    final note = transaction['note']?.toString().trim().toLowerCase() ?? '';
+    return note.startsWith('fund contribution -');
+  }
+
+  double _allocatedPercentForParent(
+    fm.CategoryGroup? group,
+    AllocationPlan plan, {
+    required int fallbackIndex,
+  }) {
+    switch (group) {
+      case fm.CategoryGroup.necessary:
+        return plan.necessary;
+      case fm.CategoryGroup.accumulation:
+        return plan.accumulation;
+      case fm.CategoryGroup.flexibility:
+        return plan.flexibility;
+      case null:
+        final fallback = <double>[
+          plan.necessary,
+          plan.accumulation,
+          plan.flexibility,
+        ];
+        if (fallbackIndex < 0 || fallbackIndex >= fallback.length) return 0;
+        return fallback[fallbackIndex];
+    }
+  }
+
+  double _toDouble(Object? value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  ({String parentName, double allocated})? _parentAllocationForSubcategory(
+    int? subCategoryId,
+  ) {
+    if (!_isExpense || subCategoryId == null) return null;
+    try {
+      final rawCategories = _categories;
+      final categories =
+          (rawCategories as List<dynamic>?)?.whereType<fm.Category>().toList(
+            growable: false,
+          ) ??
+          const <fm.Category>[];
+      if (categories.isEmpty) return null;
+
+      fm.Category? selectedSubcategory;
+      for (final category in categories) {
+        if (category.id == subCategoryId) {
+          selectedSubcategory = category;
+          break;
+        }
+      }
+      final parentId = selectedSubcategory?.parentId;
+      if (parentId == null) return null;
+
+      final allocatedRaw = _parentAllocatedAmounts[parentId];
+      if (allocatedRaw == null) return null;
+      final allocated = _toDouble(allocatedRaw);
+
+      var parentName = 'Danh mục cha';
+      final rawParentCategories = _parentCategories;
+      final parentCategories =
+          (rawParentCategories as List<dynamic>?)
+              ?.whereType<fm.Category>()
+              .toList(growable: false) ??
+          const <fm.Category>[];
+      for (final parent in parentCategories) {
+        if (parent.id == parentId) {
+          parentName = parent.name;
+          break;
+        }
+      }
+      return (parentName: parentName, allocated: allocated);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String? _parentAllocationWarningText({
+    required num amount,
+    required int? subCategoryId,
+  }) {
+    final parentAllocation = _parentAllocationForSubcategory(subCategoryId);
+    if (parentAllocation == null) return null;
+    if (amount <= parentAllocation.allocated) return null;
+    final exceedAmount = amount - parentAllocation.allocated;
+    return 'Cảnh báo: Số tiền chi vượt mức đã phân cho '
+        '"${parentAllocation.parentName}" (${_formatVnd(parentAllocation.allocated)}), '
+        'vượt ${_formatVnd(exceedAmount)}.';
+  }
+
+  Future<void> _openCategoryPickerModal({
+    required List<fm.Category> parentCategories,
+    required List<fm.Category> childCategories,
+  }) async {
+    if (!_isExpense || childCategories.isEmpty) return;
+    String searchQuery = '';
+    final searchController = TextEditingController();
+    final childrenByParent = <int, List<fm.Category>>{};
+    for (final category in childCategories) {
+      final parentId = category.parentId;
+      if (parentId == null) continue;
+      childrenByParent
+          .putIfAbsent(parentId, () => <fm.Category>[])
+          .add(category);
+    }
+    final parentById = <int, fm.Category>{
+      for (final parent in parentCategories) parent.id: parent,
+    };
+    for (final entry in childrenByParent.entries) {
+      final group = parentById[entry.key]?.group;
+      entry.value.sort((a, b) => _compareSubcategory(group, a.name, b.name));
+    }
+    final orderedParentIds = <int>[];
+    for (final parent in parentCategories) {
+      if (childrenByParent[parent.id]?.isNotEmpty ?? false) {
+        orderedParentIds.add(parent.id);
+      }
+    }
+    final remainingParentIds =
+        childrenByParent.keys
+            .where((id) => !orderedParentIds.contains(id))
+            .toList(growable: false)
+          ..sort((a, b) => a.compareTo(b));
+    orderedParentIds.addAll(remainingParentIds);
+    final pickerResult = await showModalBottomSheet<_CategoryPickerResult>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        final maxHeight = MediaQuery.of(sheetContext).size.height * 0.82;
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final keyword = searchQuery.trim().toLowerCase();
+            final filteredByParent = <int, List<fm.Category>>{};
+            for (final parentId in orderedParentIds) {
+              final items = childrenByParent[parentId] ?? const <fm.Category>[];
+              final parentName = parentById[parentId]?.name.toLowerCase() ?? '';
+              final filtered = items
+                  .where((category) {
+                    if (keyword.isEmpty) return true;
+                    return category.name.toLowerCase().contains(keyword) ||
+                        parentName.contains(keyword);
+                  })
+                  .toList(growable: false);
+              if (filtered.isNotEmpty) {
+                filteredByParent[parentId] = filtered;
+              }
+            }
+            final visibleParentIds = orderedParentIds
+                .where((id) => filteredByParent.containsKey(id))
+                .toList(growable: false);
+
+            return SafeArea(
+              top: false,
+              child: SizedBox(
+                height: maxHeight,
+                child: Column(
+                  children: [
+                    const SizedBox(height: 10),
+                    Container(
+                      width: 42,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppColors.border,
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 10, 8, 4),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Chọn category',
+                              style: Theme.of(sheetContext).textTheme.bodyMedium
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () => Navigator.pop(sheetContext),
+                            icon: const Icon(Icons.close),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 1),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: AppColors.fieldBackground,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: AppColors.border),
+                              ),
+                              child: TextField(
+                                controller: searchController,
+                                onChanged: (value) => setModalState(() {
+                                  searchQuery = value;
+                                }),
+                                decoration: const InputDecoration(
+                                  hintText: 'Tìm kiếm',
+                                  border: InputBorder.none,
+                                  contentPadding: EdgeInsets.zero,
+                                  prefixIcon: Icon(
+                                    Icons.search,
+                                    color: AppColors.textMuted,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          OutlinedButton.icon(
+                            onPressed: () => Navigator.pop(
+                              sheetContext,
+                              const _CategoryPickerResult.openCreate(),
+                            ),
+                            icon: const Icon(
+                              Icons.add_circle_outline,
+                              size: 18,
+                            ),
+                            label: const Text('Tạo mới'),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(108, 44),
+                              side: const BorderSide(color: AppColors.border),
+                              foregroundColor: AppColors.textPrimary,
+                              backgroundColor: AppColors.card,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: visibleParentIds.isEmpty
+                          ? Center(
+                              child: Text(
+                                'Không tìm thấy danh mục',
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(color: AppColors.textSecondary),
+                              ),
+                            )
+                          : ListView.separated(
+                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                              itemCount: visibleParentIds.length,
+                              separatorBuilder: (_, index) =>
+                                  const SizedBox(height: 14),
+                              itemBuilder: (context, index) {
+                                final parentId = visibleParentIds[index];
+                                final parent = parentById[parentId];
+                                final parentName =
+                                    parent?.name ?? 'Category cha';
+                                final parentColor = CategoryUi.colorFromString(
+                                  parent?.color,
+                                  fallback: _parentFallbackColor(parent?.group),
+                                );
+                                final parentIcon = CategoryUi.iconFromString(
+                                  parent?.icon,
+                                );
+                                final childItems =
+                                    filteredByParent[parentId] ??
+                                    const <fm.Category>[];
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 10,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: parentColor.withValues(
+                                          alpha: 0.12,
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: parentColor.withValues(
+                                            alpha: 0.35,
+                                          ),
+                                        ),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            parentIcon,
+                                            size: 20,
+                                            color: parentColor,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            parentName,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodyLarge
+                                                ?.copyWith(
+                                                  color: parentColor,
+                                                  fontSize: 22,
+                                                  fontWeight: FontWeight.w800,
+                                                ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    ...childItems.map((category) {
+                                      final isSelected =
+                                          category.id == _selectedCategoryId;
+                                      final childColor =
+                                          CategoryUi.colorFromString(
+                                            category.color,
+                                            fallback: parentColor,
+                                          );
+                                      final childIcon =
+                                          CategoryUi.iconFromString(
+                                            category.icon,
+                                          );
+                                      return Padding(
+                                        padding: const EdgeInsets.only(
+                                          bottom: 8,
+                                        ),
+                                        child: InkWell(
+                                          onTap: () => Navigator.pop(
+                                            sheetContext,
+                                            _CategoryPickerResult.select(
+                                              category.id,
+                                            ),
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 12,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: isSelected
+                                                  ? AppColors.primaryBlue
+                                                        .withValues(alpha: 0.1)
+                                                  : AppColors.card,
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                              border: Border.all(
+                                                color: isSelected
+                                                    ? AppColors.primaryBlue
+                                                    : AppColors.border,
+                                              ),
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                Container(
+                                                  padding: const EdgeInsets.all(
+                                                    8,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color: childColor
+                                                        .withValues(
+                                                          alpha: 0.16,
+                                                        ),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          10,
+                                                        ),
+                                                  ),
+                                                  child: Icon(
+                                                    childIcon,
+                                                    size: 18,
+                                                    color: childColor,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 10),
+                                                Expanded(
+                                                  child: Text(
+                                                    category.name,
+                                                    style: Theme.of(context)
+                                                        .textTheme
+                                                        .bodyMedium
+                                                        ?.copyWith(
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                        ),
+                                                  ),
+                                                ),
+                                                if (isSelected)
+                                                  const Icon(
+                                                    Icons.check_circle,
+                                                    color: AppColors.success,
+                                                    size: 18,
+                                                  ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    }),
+                                  ],
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+    searchController.dispose();
+    if (!mounted || pickerResult == null) return;
+    if (pickerResult.openCreate) {
+      final created = await Navigator.pushNamed(
+        context,
+        CreateCategoryScreen.routeName,
+        arguments: const CreateCategoryArgs(type: fm.CategoryType.expense),
+      );
+      if (!mounted) return;
+      if (created == true) {
+        await _loadCategories();
+      }
+      return;
+    }
+    if (pickerResult.selectedCategoryId != null) {
+      _selectSubcategory(pickerResult.selectedCategoryId);
+    }
   }
 
   num? _parseAmount(String raw) {
     final normalized = raw.replaceAll(RegExp(r'[^0-9]'), '').trim();
     if (normalized.isEmpty) return null;
     return double.tryParse(normalized);
+  }
+
+  String _formatVnd(num amount) {
+    final rounded = amount.round();
+    final absolute = rounded.abs().toString().replaceAllMapped(
+      RegExp(r'\B(?=(\d{3})+(?!\d))'),
+      (_) => '.',
+    );
+    final prefix = rounded < 0 ? '-' : '';
+    return '$prefix$absoluteđ';
   }
 
   Future<void> _handleSave() async {
@@ -374,6 +920,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       _showSnack('Please select a subcategory');
       return;
     }
+    final parentWarning = _parentAllocationWarningText(
+      amount: amount,
+      subCategoryId: categoryId,
+    );
+    if (parentWarning != null) {
+      _showSnack(parentWarning);
+    }
     setState(() => _isSaving = true);
     try {
       String? imageUrl;
@@ -385,7 +938,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         categoryId: categoryId,
         type: _isExpense ? TransactionType.expense : TransactionType.income,
         amount: amount,
-        note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
+        note: _noteController.text.trim().isEmpty
+            ? null
+            : _noteController.text.trim(),
         imageUrl: imageUrl,
         transactionDate: _effectiveDate(),
       );
@@ -400,9 +955,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 
   void _showSnack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   bool _isSameDay(DateTime a, DateTime b) {
@@ -436,7 +991,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 
   Future<_PickedReceipt?> _pickReceiptFile() async {
-    final isMobile = !kIsWeb &&
+    final isMobile =
+        !kIsWeb &&
         (defaultTargetPlatform == TargetPlatform.android ||
             defaultTargetPlatform == TargetPlatform.iOS);
     if (isMobile || kIsWeb) {
@@ -496,10 +1052,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     if (_receiptImageUrl != null && _receiptImageUrl!.isNotEmpty) {
       return _receiptImageUrl;
     }
-    final fileName =
-        (_receiptName != null && _receiptName!.trim().isNotEmpty)
-            ? _receiptName!.trim()
-            : 'receipt.jpg';
+    final fileName = (_receiptName != null && _receiptName!.trim().isNotEmpty)
+        ? _receiptName!.trim()
+        : 'receipt.jpg';
     final url = await _receiptUploadSvc.uploadReceipt(_receiptBytes!, fileName);
     _receiptImageUrl = url;
     return url;
@@ -526,29 +1081,52 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     final categories = _dedupeCategoriesById(
       rawCategories?.whereType<fm.Category>().toList() ?? const <fm.Category>[],
     );
-    final parentCategories =
-        rawParentCategories?.whereType<fm.Category>().toList() ?? const <fm.Category>[];
+    final parentCategories = _dedupeCategoriesById(
+      rawParentCategories?.whereType<fm.Category>().toList() ??
+          const <fm.Category>[],
+    );
     final categoryIds = categories.map((category) => category.id).toSet();
     final selectedCategoryId =
         _selectedCategoryId != null && categoryIds.contains(_selectedCategoryId)
-            ? _selectedCategoryId
-            : null;
+        ? _selectedCategoryId
+        : null;
+    final quickCategories = categories.take(3).toList(growable: false);
+    final quickCategoryIds = quickCategories
+        .map((category) => category.id)
+        .toSet();
+    final selectedCategory = selectedCategoryId != null
+        ? categories.firstWhere((category) => category.id == selectedCategoryId)
+        : null;
+    final selectedOutsideQuick =
+        selectedCategoryId != null &&
+        !quickCategoryIds.contains(selectedCategoryId);
+    final parentAllocationWarning = _parentAllocationWarningText(
+      amount: _parseAmount(amountController.text) ?? 0,
+      subCategoryId: selectedCategoryId,
+    );
     final wallets = _dedupeWalletsById(
       rawWallets?.whereType<Wallet>().toList() ?? const <Wallet>[],
     );
     final walletIds = wallets.map((wallet) => wallet.id).toSet();
     final selectedWalletId =
         _selectedWalletId != null && walletIds.contains(_selectedWalletId)
-            ? _selectedWalletId
-            : null;
-    final receiptSizeLabel =
-        _receiptSize != null ? _formatBytes(_receiptSize!) : null;
+        ? _selectedWalletId
+        : null;
+    final receiptSizeLabel = _receiptSize != null
+        ? _formatBytes(_receiptSize!)
+        : null;
     final hasInvalidCategories =
-        rawCategories != null && rawCategories.any((item) => item is! fm.Category);
+        rawCategories != null &&
+        rawCategories.any((item) => item is! fm.Category);
     final hasInvalidParentCategories =
-        rawParentCategories != null && rawParentCategories.any((item) => item is! fm.Category);
-    final hasInvalidWallets = rawWallets != null && rawWallets.any((item) => item is! Wallet);
-    if ((hasInvalidCategories || hasInvalidParentCategories || hasInvalidWallets) && !_isLoading) {
+        rawParentCategories != null &&
+        rawParentCategories.any((item) => item is! fm.Category);
+    final hasInvalidWallets =
+        rawWallets != null && rawWallets.any((item) => item is! Wallet);
+    if ((hasInvalidCategories ||
+            hasInvalidParentCategories ||
+            hasInvalidWallets) &&
+        !_isLoading) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           _loadData();
@@ -570,7 +1148,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.transactions),
+      bottomNavigationBar: const FinMateBottomNav(
+        active: FinMateNavItem.transactions,
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -590,10 +1170,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                       padding: const EdgeInsets.only(bottom: 12),
                       child: Text(
                         _errorMessage!,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(color: AppColors.primaryRed),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.primaryRed,
+                        ),
                       ),
                     ),
                   _SegmentedToggle(
@@ -612,21 +1191,21 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                       children: [
                         Text(
                           'AMOUNT',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
+                          style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(color: AppColors.textMuted),
                         ),
                         const SizedBox(height: 6),
                         TextField(
                           controller: amountController,
+                          onChanged: (_) => setState(() {}),
                           keyboardType: TextInputType.number,
                           inputFormatters: const [_VndInputFormatter()],
                           textAlign: TextAlign.center,
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
-                              ?.copyWith(fontSize: 32, fontWeight: FontWeight.w700),
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(
+                                fontSize: 32,
+                                fontWeight: FontWeight.w700,
+                              ),
                           decoration: const InputDecoration(
                             hintText: '0',
                             border: InputBorder.none,
@@ -645,10 +1224,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   const SizedBox(height: 16),
                   Text(
                     'Wallet',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(fontWeight: FontWeight.w600),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   DropdownButtonFormField<int?>(
@@ -677,120 +1255,117 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                         ),
                       ),
                     ],
-                    onChanged: (value) => setState(() => _selectedWalletId = value),
+                    onChanged: (value) =>
+                        setState(() => _selectedWalletId = value),
                   ),
                   if (_isExpense) ...[
                     const SizedBox(height: 18),
                     Text(
                       'Category',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(fontWeight: FontWeight.w600),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 10),
-                    if (parentCategories.isEmpty)
+                    if (categories.isEmpty)
                       Text(
-                        'No main categories available.',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(color: AppColors.textSecondary),
-                      ),
-                    if (parentCategories.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: Text(
-                          'Step 1: Choose main category',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.copyWith(color: AppColors.textSecondary),
+                        'No subcategories available.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.textSecondary,
                         ),
                       ),
-                    if (parentCategories.isNotEmpty)
+                    if (categories.isNotEmpty)
                       LayoutBuilder(
                         builder: (context, constraints) {
                           const spacing = 10.0;
-                          final itemWidth = (constraints.maxWidth - (spacing * 2)) / 3;
-                          return SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Row(
-                              children: parentCategories.asMap().entries.map((entry) {
-                                final index = entry.key;
-                                final category = entry.value;
-                                return Padding(
-                                  padding: EdgeInsets.only(
-                                    right: index == parentCategories.length - 1 ? 0 : spacing,
+                          final itemWidth =
+                              (constraints.maxWidth - (spacing * 3)) / 4;
+                          return Row(
+                            children: [
+                              for (var i = 0; i < 3; i++)
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    right: spacing,
                                   ),
                                   child: SizedBox(
                                     width: itemWidth,
-                                    child: _CategoryChip(
-                                      label: category.name,
-                                      icon: CategoryUi.iconFromString(category.icon),
-                                      color: CategoryUi.colorFromString(
-                                        category.color,
-                                        fallback: AppColors.primaryBlue,
-                                      ),
-                                      selected: category.id == _selectedParentCategoryId,
-                                      onTap: () => _selectParentCategory(category.id),
+                                    child: _CategoryQuickTile(
+                                      label: i < quickCategories.length
+                                          ? quickCategories[i].name
+                                          : '-',
+                                      icon: i < quickCategories.length
+                                          ? CategoryUi.iconFromString(
+                                              quickCategories[i].icon,
+                                            )
+                                          : null,
+                                      iconColor: i < quickCategories.length
+                                          ? CategoryUi.colorFromString(
+                                              quickCategories[i].color,
+                                              fallback: AppColors.primaryBlue,
+                                            )
+                                          : null,
+                                      selected:
+                                          i < quickCategories.length &&
+                                          quickCategories[i].id ==
+                                              selectedCategoryId,
+                                      onTap: i < quickCategories.length
+                                          ? () => _selectSubcategory(
+                                              quickCategories[i].id,
+                                            )
+                                          : null,
                                     ),
                                   ),
-                                );
-                              }).toList(),
-                            ),
+                                ),
+                              SizedBox(
+                                width: itemWidth,
+                                child: _CategoryQuickTile(
+                                  label: selectedCategory?.name ?? 'More',
+                                  icon: selectedCategory != null
+                                      ? CategoryUi.iconFromString(
+                                          selectedCategory.icon,
+                                        )
+                                      : null,
+                                  iconColor: selectedCategory != null
+                                      ? CategoryUi.colorFromString(
+                                          selectedCategory.color,
+                                          fallback: AppColors.primaryBlue,
+                                        )
+                                      : null,
+                                  selected: selectedOutsideQuick,
+                                  onTap: () => _openCategoryPickerModal(
+                                    parentCategories: parentCategories,
+                                    childCategories: categories,
+                                  ),
+                                  isMore: selectedCategory == null,
+                                ),
+                              ),
+                            ],
                           );
                         },
                       ),
-                    if (parentCategories.isNotEmpty) const SizedBox(height: 14),
-                    if (parentCategories.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
+                    if (parentAllocationWarning != null) ...[
+                      const SizedBox(height: 10),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF7ED),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFFED7AA)),
+                        ),
                         child: Text(
-                          'Step 2: Choose subcategory',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.copyWith(color: AppColors.textSecondary),
+                          parentAllocationWarning,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: const Color(0xFFB45309),
+                                fontWeight: FontWeight.w600,
+                              ),
                         ),
                       ),
-                    if (parentCategories.isNotEmpty && categories.isEmpty)
-                      Text(
-                        'No subcategories in this main category.',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(color: AppColors.textSecondary),
-                      ),
-                    if (categories.isNotEmpty)
-                      DropdownButtonFormField<int?>(
-                        value: selectedCategoryId,
-                        decoration: InputDecoration(
-                          filled: true,
-                          fillColor: AppColors.card,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: AppColors.border),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: AppColors.border),
-                          ),
-                        ),
-                        items: [
-                          const DropdownMenuItem<int?>(
-                            value: null,
-                            child: Text('Select a subcategory'),
-                          ),
-                          ...categories.map(
-                            (category) => DropdownMenuItem<int?>(
-                              value: category.id,
-                              child: Text(category.name),
-                            ),
-                          ),
-                        ],
-                        onChanged: (value) => setState(() => _selectedCategoryId = value),
-                      ),
+                    ],
                   ],
                   const SizedBox(height: 16),
                   _NoteField(controller: _noteController),
@@ -899,9 +1474,9 @@ class _SegmentButton extends StatelessWidget {
           child: Text(
             label,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: selected ? AppColors.textPrimary : AppColors.textSecondary,
-                ),
+              fontWeight: FontWeight.w600,
+              color: selected ? AppColors.textPrimary : AppColors.textSecondary,
+            ),
           ),
         ),
       ),
@@ -944,16 +1519,16 @@ class _InfoRow extends StatelessWidget {
           const SizedBox(width: 12),
           Text(
             label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
           ),
           const Spacer(),
           Text(
             value,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
           ),
           const SizedBox(width: 8),
           const Icon(Icons.chevron_right, color: AppColors.textMuted),
@@ -969,59 +1544,97 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-class _CategoryChip extends StatelessWidget {
-  const _CategoryChip({
+class _CategoryQuickTile extends StatelessWidget {
+  const _CategoryQuickTile({
     required this.label,
-    required this.icon,
-    required this.color,
     required this.selected,
-    required this.onTap,
+    this.onTap,
+    this.isMore = false,
+    this.icon,
+    this.iconColor,
   });
 
   final String label;
-  final IconData icon;
-  final Color color;
   final bool selected;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+  final bool isMore;
+  final IconData? icon;
+  final Color? iconColor;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: selected ? color.withOpacity(0.12) : AppColors.card,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: selected ? color : AppColors.border,
-            width: selected ? 1.5 : 1,
-          ),
+    final tile = Container(
+      height: 70,
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+      decoration: BoxDecoration(
+        color: selected
+            ? AppColors.primaryBlue.withValues(alpha: 0.1)
+            : AppColors.card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: selected ? AppColors.primaryBlue : AppColors.border,
+          width: selected ? 1.3 : 1,
         ),
+      ),
+      child: Center(
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.15),
-                shape: BoxShape.circle,
+            if (isMore)
+              const Icon(
+                Icons.more_horiz,
+                size: 16,
+                color: AppColors.textSecondary,
+              )
+            else if (icon != null)
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: (iconColor ?? AppColors.primaryBlue).withValues(
+                    alpha: 0.16,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  icon,
+                  size: 15,
+                  color: iconColor ?? AppColors.primaryBlue,
+                ),
               ),
-              child: Icon(icon, size: 18, color: color),
-            ),
-            const SizedBox(height: 6),
             Text(
               label,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(fontWeight: FontWeight.w600),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
             ),
           ],
         ),
       ),
     );
+    if (onTap == null) {
+      return Opacity(opacity: 0.5, child: tile);
+    }
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: tile,
+    );
   }
+}
+
+class _CategoryPickerResult {
+  const _CategoryPickerResult.select(this.selectedCategoryId)
+    : openCreate = false;
+
+  const _CategoryPickerResult.openCreate()
+    : selectedCategoryId = null,
+      openCreate = true;
+
+  final int? selectedCategoryId;
+  final bool openCreate;
 }
 
 class _NoteField extends StatelessWidget {
@@ -1071,7 +1684,9 @@ class _AttachmentCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasFile = fileBytes != null;
     final title = hasFile
-        ? (fileName?.trim().isNotEmpty == true ? fileName!.trim() : 'Receipt attached')
+        ? (fileName?.trim().isNotEmpty == true
+              ? fileName!.trim()
+              : 'Receipt attached')
         : 'Attach Receipt';
     final subtitle = hasFile
         ? (fileSize != null ? 'Tap to change • $fileSize' : 'Tap to change')
@@ -1114,20 +1729,18 @@ class _AttachmentCard extends StatelessWidget {
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(fontWeight: FontWeight.w600),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: AppColors.textSecondary),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ),

@@ -1,19 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
+
 const String _overviewRoute = '/dashboard/monthly';
 const String _calendarRoute = '/calendar/weekly';
-const String _transactionsRoute = '/transactions/list';
+const String _transactionsRoute = '/transactions/add';
 const String _aiChatbotRoute = '/ai-coach/chat';
 const String _utilitiesRoute = '/settings';
 
-enum FinMateNavItem {
-  overview,
-  calendar,
-  transactions,
-  aiChatbot,
-  utilities,
-}
+enum FinMateNavItem { overview, calendar, transactions, aiChatbot, utilities }
 
 class FinMateBottomNav extends StatelessWidget {
   const FinMateBottomNav({super.key, this.active});
@@ -22,6 +17,11 @@ class FinMateBottomNav extends StatelessWidget {
 
   void _open(BuildContext context, String route) {
     Navigator.pushNamedAndRemoveUntil(context, route, (_) => false);
+  }
+
+  void _openTransactions(BuildContext context) {
+    if (active == FinMateNavItem.transactions) return;
+    Navigator.pushNamed(context, _transactionsRoute);
   }
 
   @override
@@ -57,12 +57,12 @@ class FinMateBottomNav extends StatelessWidget {
                 label: 'Ghi chép\ngiao dịch',
                 icon: Icons.edit_note_rounded,
                 active: active == FinMateNavItem.transactions,
-                onTap: () => _open(context, _transactionsRoute),
+                onTap: () => _openTransactions(context),
               ),
             ),
             Expanded(
               child: _NavItem(
-                label: 'Chatbot AI',
+                label: 'FinMateAI',
                 icon: Icons.smart_toy_outlined,
                 active: active == FinMateNavItem.aiChatbot,
                 onTap: () => _open(context, _aiChatbotRoute),
@@ -113,11 +113,11 @@ class _NavItem extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: color,
-                  fontSize: 10,
-                  height: 1.1,
-                  fontWeight: FontWeight.w600,
-                ),
+              color: color,
+              fontSize: 10,
+              height: 1.1,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),
