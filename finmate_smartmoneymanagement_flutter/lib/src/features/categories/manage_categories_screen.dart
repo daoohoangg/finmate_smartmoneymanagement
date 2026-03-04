@@ -550,7 +550,7 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
               },
         child: const Icon(Icons.add, color: Colors.white),
       ),
-      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.settings),
+      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.utilities),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),

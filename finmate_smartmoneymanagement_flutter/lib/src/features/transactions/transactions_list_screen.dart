@@ -278,7 +278,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen>
           ),
         ],
       ),
-      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.history),
+      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.transactions),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(

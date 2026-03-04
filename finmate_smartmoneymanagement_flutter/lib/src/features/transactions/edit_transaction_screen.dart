@@ -34,7 +34,7 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.history),
+      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.transactions),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),

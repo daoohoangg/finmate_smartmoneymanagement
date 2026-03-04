@@ -49,7 +49,7 @@ class _AiCoachIntroScreenState extends State<AiCoachIntroScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.overview),
+      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.aiChatbot),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),

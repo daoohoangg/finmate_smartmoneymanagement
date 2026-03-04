@@ -65,7 +65,7 @@ class _TrendAnalysisScreenState extends State<TrendAnalysisScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.stats),
+      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.overview),
     );
   }
 }

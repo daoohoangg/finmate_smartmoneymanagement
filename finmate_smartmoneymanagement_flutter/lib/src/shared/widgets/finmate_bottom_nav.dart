@@ -2,16 +2,17 @@ import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
 const String _overviewRoute = '/dashboard/monthly';
-const String _historyRoute = '/transactions/list';
-const String _addTransactionRoute = '/transactions/add';
-const String _statsRoute = '/analytics/insights';
-const String _settingsRoute = '/settings';
+const String _calendarRoute = '/calendar/weekly';
+const String _transactionsRoute = '/transactions/list';
+const String _aiChatbotRoute = '/ai-coach/chat';
+const String _utilitiesRoute = '/settings';
 
 enum FinMateNavItem {
   overview,
-  history,
-  stats,
-  settings,
+  calendar,
+  transactions,
+  aiChatbot,
+  utilities,
 }
 
 class FinMateBottomNav extends StatelessWidget {
@@ -34,45 +35,45 @@ class FinMateBottomNav extends StatelessWidget {
           border: Border(top: BorderSide(color: AppColors.border)),
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _NavItem(
-              label: 'Overview',
-              icon: Icons.home_filled,
-              active: active == FinMateNavItem.overview,
-              onTap: () => _open(context, _overviewRoute),
-            ),
-            _NavItem(
-              label: 'History',
-              icon: Icons.event_note_outlined,
-              active: active == FinMateNavItem.history,
-              onTap: () => _open(
-                context,
-                _historyRoute,
+            Expanded(
+              child: _NavItem(
+                label: 'Overview',
+                icon: Icons.home_filled,
+                active: active == FinMateNavItem.overview,
+                onTap: () => _open(context, _overviewRoute),
               ),
             ),
-            _PrimaryNavButton(
-              onTap: () => Navigator.pushNamed(
-                context,
-                _addTransactionRoute,
+            Expanded(
+              child: _NavItem(
+                label: 'Lịch',
+                icon: Icons.calendar_month_outlined,
+                active: active == FinMateNavItem.calendar,
+                onTap: () => _open(context, _calendarRoute),
               ),
             ),
-            _NavItem(
-              label: 'Stats',
-              icon: Icons.bar_chart_rounded,
-              active: active == FinMateNavItem.stats,
-              onTap: () => _open(
-                context,
-                _statsRoute,
+            Expanded(
+              child: _NavItem(
+                label: 'Ghi chép\ngiao dịch',
+                icon: Icons.edit_note_rounded,
+                active: active == FinMateNavItem.transactions,
+                onTap: () => _open(context, _transactionsRoute),
               ),
             ),
-            _NavItem(
-              label: 'Settings',
-              icon: Icons.settings_outlined,
-              active: active == FinMateNavItem.settings,
-              onTap: () => _open(
-                context,
-                _settingsRoute,
+            Expanded(
+              child: _NavItem(
+                label: 'Chatbot AI',
+                icon: Icons.smart_toy_outlined,
+                active: active == FinMateNavItem.aiChatbot,
+                onTap: () => _open(context, _aiChatbotRoute),
+              ),
+            ),
+            Expanded(
+              child: _NavItem(
+                label: 'Tiện ích',
+                icon: Icons.widgets_outlined,
+                active: active == FinMateNavItem.utilities,
+                onTap: () => _open(context, _utilitiesRoute),
               ),
             ),
           ],
@@ -108,46 +109,17 @@ class _NavItem extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             label,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: color,
-                  fontSize: 11,
+                  fontSize: 10,
+                  height: 1.1,
                   fontWeight: FontWeight.w600,
                 ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _PrimaryNavButton extends StatelessWidget {
-  const _PrimaryNavButton({this.onTap});
-
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 54,
-        height: 54,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: const LinearGradient(
-            colors: [Color(0xFF2F8CFF), Color(0xFF1E6CFF)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: const Icon(Icons.add, color: Colors.white, size: 28),
       ),
     );
   }

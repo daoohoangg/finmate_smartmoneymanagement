@@ -172,7 +172,7 @@ class _AiCoachChatScreenState extends State<AiCoachChatScreen> {
         ),
       ),
       bottomNavigationBar: const FinMateBottomNav(
-        active: FinMateNavItem.overview,
+        active: FinMateNavItem.aiChatbot,
       ),
       body: Column(
         children: [

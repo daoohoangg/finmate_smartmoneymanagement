@@ -19,7 +19,7 @@ class SearchResultsScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.history),
+      bottomNavigationBar: const FinMateBottomNav(active: FinMateNavItem.transactions),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),

@@ -323,7 +323,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
       bottomNavigationBar: const FinMateBottomNav(
-        active: FinMateNavItem.settings,
+        active: FinMateNavItem.utilities,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
