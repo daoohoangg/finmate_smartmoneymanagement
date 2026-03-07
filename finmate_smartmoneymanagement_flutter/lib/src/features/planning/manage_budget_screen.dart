@@ -6,6 +6,7 @@ import '../../core/constants/app_colors.dart';
 import '../../shared/widgets/finmate_bottom_nav.dart';
 import '../../shared/widgets/primary_button.dart';
 import '../budget/models/budget.dart';
+import '../budget/subcategory_budget_detail_screen.dart';
 import '../budget/services/budget_service.dart';
 import '../categories/models/category.dart';
 import '../categories/services/category_service.dart';
@@ -287,6 +288,7 @@ class _ManageBudgetScreenState extends State<ManageBudgetScreen> {
     return '$prefix$digitsđ';
   }
 
+  // ignore: unused_element
   Future<void> _openTransferSheet(
     _MainCategorySummary mainCategory, {
     int? initialFromCategoryId,
@@ -640,7 +642,7 @@ class _ManageBudgetScreenState extends State<ManageBudgetScreen> {
     }
   }
 
-  Future<void> _moveFromSubCategory(
+  Future<void> _openSubCategoryBudgetScreen(
     _MainCategorySummary mainCategory,
     _SubCategorySummary subCategory,
   ) async {
@@ -648,9 +650,16 @@ class _ManageBudgetScreenState extends State<ManageBudgetScreen> {
       _showSnack('This subcategory has no budget yet');
       return;
     }
-    await _openTransferSheet(
-      mainCategory,
-      initialFromCategoryId: subCategory.categoryId,
+    await Navigator.pushNamed(
+      context,
+      SubCategoryBudgetDetailScreen.routeName,
+      arguments: SubCategoryBudgetDetailArgs(
+        categoryId: subCategory.categoryId,
+        title: subCategory.name,
+        mainCategoryName: mainCategory.name,
+        totalBudget: subCategory.amount ?? 0,
+        availableBudget: subCategory.available ?? 0,
+      ),
     );
   }
 
@@ -709,7 +718,7 @@ class _ManageBudgetScreenState extends State<ManageBudgetScreen> {
                           formatAmount: _formatVnd,
                           onRetry: _loadCategoryOverview,
                           onAddSubCategory: _openAddMoneyDialog,
-                          onMoveSubCategory: _moveFromSubCategory,
+                          onOpenSubCategoryScreen: _openSubCategoryBudgetScreen,
                         ),
                       ],
                     ),
@@ -754,8 +763,10 @@ class _MainCategorySummary {
   final List<_SubCategorySummary> subCategories;
 
   double get totalBudget => amount ?? 0.0;
-  double get allocatedToSubCategories =>
-      subCategories.fold<double>(0.0, (sum, item) => sum + (item.amount ?? 0.0));
+  double get allocatedToSubCategories => subCategories.fold<double>(
+    0.0,
+    (sum, item) => sum + (item.amount ?? 0.0),
+  );
   double get remainingAmount =>
       max<double>(0.0, totalBudget - allocatedToSubCategories);
 
@@ -846,7 +857,7 @@ class _MainCategoryOverviewCard extends StatelessWidget {
     required this.formatAmount,
     required this.onRetry,
     required this.onAddSubCategory,
-    required this.onMoveSubCategory,
+    required this.onOpenSubCategoryScreen,
   });
 
   final List<_MainCategorySummary>? categories;
@@ -863,7 +874,7 @@ class _MainCategoryOverviewCard extends StatelessWidget {
     _MainCategorySummary mainCategory,
     _SubCategorySummary subCategory,
   )
-  onMoveSubCategory;
+  onOpenSubCategoryScreen;
 
   @override
   Widget build(BuildContext context) {
@@ -929,8 +940,8 @@ class _MainCategoryOverviewCard extends StatelessWidget {
                         formatAmount: formatAmount,
                         onAddSubCategory: (subCategory) =>
                             onAddSubCategory(category, subCategory),
-                        onMoveSubCategory: (subCategory) =>
-                            onMoveSubCategory(category, subCategory),
+                        onOpenSubCategoryScreen: (subCategory) =>
+                            onOpenSubCategoryScreen(category, subCategory),
                       ),
                     ),
                   )
@@ -947,14 +958,14 @@ class _MainCategoryTile extends StatelessWidget {
     required this.category,
     required this.formatAmount,
     required this.onAddSubCategory,
-    required this.onMoveSubCategory,
+    required this.onOpenSubCategoryScreen,
   });
 
   final _MainCategorySummary category;
   final String Function(double amount) formatAmount;
   final Future<void> Function(_SubCategorySummary subCategory) onAddSubCategory;
   final Future<void> Function(_SubCategorySummary subCategory)
-  onMoveSubCategory;
+  onOpenSubCategoryScreen;
 
   @override
   Widget build(BuildContext context) {
@@ -1079,8 +1090,12 @@ class _MainCategoryTile extends StatelessWidget {
                                       );
                                       return Text(
                                         'Budget: ${formatAmount(limitAmount)} • Spent: ${formatAmount(spentAmount)}',
-                                        style: Theme.of(context).textTheme.bodySmall
-                                            ?.copyWith(color: AppColors.textMuted),
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.copyWith(
+                                              color: AppColors.textMuted,
+                                            ),
                                       );
                                     },
                                   ),
@@ -1121,12 +1136,14 @@ class _MainCategoryTile extends StatelessWidget {
                             ),
                           ),
                           TextButton.icon(
-                            onPressed:
-                                (category.canTransfer && item.hasBudget == true)
-                                ? () => onMoveSubCategory(item)
+                            onPressed: item.hasBudget == true
+                                ? () => onOpenSubCategoryScreen(item)
                                 : null,
-                            icon: const Icon(Icons.swap_horiz, size: 14),
-                            label: const Text('Move'),
+                            icon: const Icon(
+                              Icons.open_in_new_rounded,
+                              size: 14,
+                            ),
+                            label: const Text('Details'),
                             style: TextButton.styleFrom(
                               visualDensity: VisualDensity.compact,
                               foregroundColor: AppColors.primaryBlue,

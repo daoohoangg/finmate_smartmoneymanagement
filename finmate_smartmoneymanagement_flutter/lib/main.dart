@@ -19,6 +19,7 @@ import 'src/features/budget/budget_status_empty_screen.dart';
 import 'src/features/budget/budget_status_exceeded_screen.dart';
 import 'src/features/budget/budget_status_track_screen.dart';
 import 'src/features/budget/budget_status_warning_screen.dart';
+import 'src/features/budget/subcategory_budget_detail_screen.dart';
 import 'src/features/categories/create_category_screen.dart';
 import 'src/features/categories/delete_category_screen.dart';
 import 'src/features/categories/manage_categories_screen.dart';
@@ -105,6 +106,8 @@ class FinMateApp extends StatelessWidget {
             const BudgetStatusExceededScreen(),
         BudgetStatusEmptyScreen.routeName: (_) =>
             const BudgetStatusEmptyScreen(),
+        SubCategoryBudgetDetailScreen.routeName: (_) =>
+            const SubCategoryBudgetDetailScreen(),
         AllocateFundsScreen.routeName: (_) => const AllocateFundsScreen(),
         AllocateFundsErrorScreen.routeName: (_) =>
             const AllocateFundsErrorScreen(),

@@ -74,8 +74,7 @@ deploy_flutter:
         tar -xzf "$tmpdir/docker.tgz" -C "$tmpdir"
         install -m 0755 "$tmpdir/docker/docker" /usr/local/bin/docker
       fi
-
-      az aks install-cli
+      # removed az aks install-cli
 
       if [ -n "$AZURE_CREDENTIALS" ]; then
         export AZURE_CLIENT_ID="$(python3 -c 'import json,os;print(json.loads(os.environ["AZURE_CREDENTIALS"]).get("clientId",""))')"
@@ -104,75 +103,10 @@ deploy_flutter:
     - |
       docker build -t "$ACR_LOGIN_SERVER/finmate-web:${IMAGE_TAG}" -f finmate_smartmoneymanagement_flutter/Dockerfile finmate_smartmoneymanagement_flutter
       docker push "$ACR_LOGIN_SERVER/finmate-web:${IMAGE_TAG}"
-    - az aks get-credentials --resource-group "$AKS_RESOURCE_GROUP" --name "$AKS_CLUSTER_NAME" --overwrite-existing
+    # removed az aks get-credentials
     - |
-      set -e
-
-      ensure_acr_pull_access() {
-        echo "Checking AKS pull access to ACR $ACR_RESOURCE_NAME..."
-        if az aks check-acr --resource-group "$AKS_RESOURCE_GROUP" --name "$AKS_CLUSTER_NAME" --acr "$ACR_RESOURCE_NAME" --output none >/dev/null 2>&1; then
-          echo "AKS pull access to ACR is OK."
-          return 0
-        fi
-
-        echo "AKS pull access check failed. Attempting AcrPull assignment for kubelet identity..."
-        KUBELET_OBJECT_ID="$(az aks show --resource-group "$AKS_RESOURCE_GROUP" --name "$AKS_CLUSTER_NAME" --query identityProfile.kubeletidentity.objectId -o tsv 2>/dev/null || true)"
-        ACR_ID="$(az acr show --name "$ACR_RESOURCE_NAME" --query id -o tsv 2>/dev/null || true)"
-
-        if [ -n "$KUBELET_OBJECT_ID" ] && [ -n "$ACR_ID" ]; then
-          az role assignment create \
-            --assignee-object-id "$KUBELET_OBJECT_ID" \
-            --assignee-principal-type ServicePrincipal \
-            --role AcrPull \
-            --scope "$ACR_ID" >/dev/null 2>&1 || true
-          echo "Waiting for role propagation..."
-          sleep 30
-        else
-          echo "Unable to resolve kubelet identity or ACR resource id for auto-fix."
-        fi
-
-        if az aks check-acr --resource-group "$AKS_RESOURCE_GROUP" --name "$AKS_CLUSTER_NAME" --acr "$ACR_RESOURCE_NAME" --output none >/dev/null 2>&1; then
-          echo "AKS pull access to ACR verified after role assignment."
-          return 0
-        fi
-
-        echo "AKS still cannot pull from ACR."
-        echo "Manual fix: az aks update --resource-group \"$AKS_RESOURCE_GROUP\" --name \"$AKS_CLUSTER_NAME\" --attach-acr \"$ACR_RESOURCE_NAME\""
-        exit 1
-      }
-
-      ensure_acr_image_exists() {
-        repo="$1"
-        tag="$2"
-        if [ -z "$tag" ]; then
-          echo "Missing image tag for repository $repo."
-          exit 1
-        fi
-        if ! az acr repository show --name "$ACR_RESOURCE_NAME" --image "${repo}:${tag}" --output none >/dev/null 2>&1; then
-          echo "Image not found in ACR: $ACR_LOGIN_SERVER/$repo:$tag"
-          exit 1
-        fi
-      }
-
-      ensure_acr_pull_access
-      ensure_acr_image_exists "finmate-web" "$IMAGE_TAG"
-      kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
-      WEB_IMAGE="$ACR_LOGIN_SERVER/finmate-web:${IMAGE_TAG}"
-      sed "s|__WEB_IMAGE__|${WEB_IMAGE}|g" deploy/k8s/web-deployment.yaml | kubectl apply -n "$NAMESPACE" -f -
-      kubectl apply -n "$NAMESPACE" -f deploy/k8s/web-service.yaml
+      az webapp config container set --resource-group "$AKS_RESOURCE_GROUP" --name "$WEBAPP_NAME_FE" \
+        --docker-custom-image-name "$ACR_LOGIN_SERVER/finmate-web:${IMAGE_TAG}" \
+        --docker-registry-server-url "https://$ACR_LOGIN_SERVER"
     - |
-      kubectl rollout status deployment/finmate-web -n "$NAMESPACE" --timeout=5m
-    - |
-      for i in $(seq 1 30); do
-        WEB_ENDPOINT="$(kubectl get svc finmate-web -n "$NAMESPACE" \
-          -o jsonpath='{.status.loadBalancer.ingress[0].ip}{.status.loadBalancer.ingress[0].hostname}')"
-        if [ -n "$WEB_ENDPOINT" ]; then
-          echo "Flutter web URL: http://$WEB_ENDPOINT"
-          exit 0
-        fi
-        echo "Waiting for external endpoint for service finmate-web ($i/30)..."
-        sleep 10
-      done
-      echo "LoadBalancer endpoint was not assigned in time."
-      kubectl get svc finmate-web -n "$NAMESPACE" -o wide
-      exit 1
+      echo "Deployment to Azure App Service ($WEBAPP_NAME_FE) has been triggered."

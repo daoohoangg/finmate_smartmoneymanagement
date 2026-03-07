@@ -74,7 +74,7 @@ deploy_be:
         install -m 0755 "$tmpdir/docker/docker" /usr/local/bin/docker
       fi
 
-      az aks install-cli
+      # removed az aks install-cli
 
       if [ -n "$AZURE_CREDENTIALS" ]; then
         export AZURE_CLIENT_ID="$(python3 -c 'import json,os;print(json.loads(os.environ["AZURE_CREDENTIALS"]).get("clientId",""))')"
@@ -103,68 +103,9 @@ deploy_be:
     - |
       docker build -t "$ACR_LOGIN_SERVER/finmate-be:${IMAGE_TAG}" -f finmate_smartmoneymanagement_be/Dockerfile finmate_smartmoneymanagement_be
       docker push "$ACR_LOGIN_SERVER/finmate-be:${IMAGE_TAG}"
-    - az aks get-credentials --resource-group "$AKS_RESOURCE_GROUP" --name "$AKS_CLUSTER_NAME" --overwrite-existing
     - |
-      set -e
-
-      ensure_acr_pull_access() {
-        echo "Checking AKS pull access to ACR $ACR_RESOURCE_NAME..."
-        if az aks check-acr --resource-group "$AKS_RESOURCE_GROUP" --name "$AKS_CLUSTER_NAME" --acr "$ACR_RESOURCE_NAME" --output none >/dev/null 2>&1; then
-          echo "AKS pull access to ACR is OK."
-          return 0
-        fi
-
-        echo "AKS pull access check failed. Attempting AcrPull assignment for kubelet identity..."
-        KUBELET_OBJECT_ID="$(az aks show --resource-group "$AKS_RESOURCE_GROUP" --name "$AKS_CLUSTER_NAME" --query identityProfile.kubeletidentity.objectId -o tsv 2>/dev/null || true)"
-        ACR_ID="$(az acr show --name "$ACR_RESOURCE_NAME" --query id -o tsv 2>/dev/null || true)"
-
-        if [ -n "$KUBELET_OBJECT_ID" ] && [ -n "$ACR_ID" ]; then
-          az role assignment create \
-            --assignee-object-id "$KUBELET_OBJECT_ID" \
-            --assignee-principal-type ServicePrincipal \
-            --role AcrPull \
-            --scope "$ACR_ID" >/dev/null 2>&1 || true
-          echo "Waiting for role propagation..."
-          sleep 30
-        else
-          echo "Unable to resolve kubelet identity or ACR resource id for auto-fix."
-        fi
-
-        if az aks check-acr --resource-group "$AKS_RESOURCE_GROUP" --name "$AKS_CLUSTER_NAME" --acr "$ACR_RESOURCE_NAME" --output none >/dev/null 2>&1; then
-          echo "AKS pull access to ACR verified after role assignment."
-          return 0
-        fi
-
-        echo "AKS still cannot pull from ACR."
-        echo "Manual fix: az aks update --resource-group \"$AKS_RESOURCE_GROUP\" --name \"$AKS_CLUSTER_NAME\" --attach-acr \"$ACR_RESOURCE_NAME\""
-        exit 1
-      }
-
-      ensure_acr_image_exists() {
-        repo="$1"
-        tag="$2"
-        if [ -z "$tag" ]; then
-          echo "Missing image tag for repository $repo."
-          exit 1
-        fi
-        if ! az acr repository show --name "$ACR_RESOURCE_NAME" --image "${repo}:${tag}" --output none >/dev/null 2>&1; then
-          echo "Image not found in ACR: $ACR_LOGIN_SERVER/$repo:$tag"
-          exit 1
-        fi
-      }
-
-      ensure_acr_pull_access
-      ensure_acr_image_exists "finmate-be" "$IMAGE_TAG"
-      kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
-      kubectl create secret generic finmate-api-secret \
-        --namespace "$NAMESPACE" \
-        --from-literal=DB_PASSWORD="$DB_PASSWORD" \
-        --from-literal=CLOUD_API_KEY="$CLOUD_API_KEY" \
-        --from-literal=CLOUD_API_SECRET="$CLOUD_API_SECRET" \
-        --from-literal=JWT_SECRET="$JWT_SECRET" \
-        --from-literal=GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID" \
-        --dry-run=client -o yaml | kubectl apply -f -
-      API_IMAGE="$ACR_LOGIN_SERVER/finmate-be:${IMAGE_TAG}"
-      sed "s|__API_IMAGE__|${API_IMAGE}|g" deploy/k8s/api-deployment.yaml | kubectl apply -n "$NAMESPACE" -f -
-      kubectl apply -n "$NAMESPACE" -f deploy/k8s/api-service.yaml
-      kubectl rollout status deployment/finmate-api -n "$NAMESPACE" --timeout=5m
+      az webapp config container set --resource-group "$AKS_RESOURCE_GROUP" --name "$WEBAPP_NAME_BE" \
+        --docker-custom-image-name "$ACR_LOGIN_SERVER/finmate-be:${IMAGE_TAG}" \
+        --docker-registry-server-url "https://$ACR_LOGIN_SERVER"
+    - |
+      echo "Deployment to Azure App Service ($WEBAPP_NAME_BE) has been triggered."

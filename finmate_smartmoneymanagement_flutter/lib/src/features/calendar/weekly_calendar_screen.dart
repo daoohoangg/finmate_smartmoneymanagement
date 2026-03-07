@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../shared/widgets/finmate_bottom_nav.dart';
 import '../dashboard/monthly_dashboard_screen.dart';
+import '../transactions/add_transaction_screen.dart';
 import '../transactions/filter_transactions_screen.dart';
 import '../transactions/services/transaction_service.dart';
 
@@ -117,6 +118,13 @@ class _WeeklyCalendarScreenState extends State<WeeklyCalendarScreen>
       MonthlyDashboardScreen.routeName,
       (_) => false,
     );
+  }
+
+  void _openTransactionEntry() {
+    Navigator.pushNamed(context, AddTransactionScreen.routeName).then((_) {
+      if (!mounted) return;
+      _loadTransactions();
+    });
   }
 
   List<_CalendarTransaction> _transactionsOnDate(DateTime date) {
@@ -279,6 +287,7 @@ class _WeeklyCalendarScreenState extends State<WeeklyCalendarScreen>
                   _TransactionsPanel(
                     selectedDate: _selectedDate,
                     records: selectedTransactions,
+                    onOpenTransactionEntry: _openTransactionEntry,
                   ),
                   const SizedBox(height: 16),
                 ],
@@ -746,10 +755,15 @@ class _LegendDot extends StatelessWidget {
 }
 
 class _TransactionsPanel extends StatelessWidget {
-  const _TransactionsPanel({required this.selectedDate, required this.records});
+  const _TransactionsPanel({
+    required this.selectedDate,
+    required this.records,
+    required this.onOpenTransactionEntry,
+  });
 
   final DateTime selectedDate;
   final List<_CalendarTransaction> records;
+  final VoidCallback onOpenTransactionEntry;
 
   @override
   Widget build(BuildContext context) {
@@ -806,10 +820,31 @@ class _TransactionsPanel extends StatelessWidget {
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(color: AppColors.border),
                         ),
-                        child: Text(
-                          'Không có giao dịch trong ngày này.',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: AppColors.textSecondary),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Không có giao dịch trong ngày này.',
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(color: AppColors.textSecondary),
+                            ),
+                            const SizedBox(height: 12),
+                            OutlinedButton.icon(
+                              onPressed: onOpenTransactionEntry,
+                              icon: const Icon(Icons.edit_note_rounded),
+                              label: const Text('Ghi chép giao dịch'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.primaryBlue,
+                                side: const BorderSide(
+                                  color: AppColors.primaryBlue,
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ...records.map((record) {
