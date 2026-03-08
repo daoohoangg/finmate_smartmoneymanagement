@@ -136,7 +136,6 @@ class _AiCoachChatScreenState extends State<AiCoachChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7FB),
       appBar: AppBar(
         titleSpacing: 0,
         title: Row(

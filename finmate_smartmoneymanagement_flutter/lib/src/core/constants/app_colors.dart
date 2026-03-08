@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static const Color page = Color(0xFFF5F6FA);
+  static const Color page = Colors.transparent;
   static const Color card = Colors.white;
   static const Color fieldBackground = Color(0xFFF8F9FB);
   static const Color textPrimary = Color(0xFF101828);

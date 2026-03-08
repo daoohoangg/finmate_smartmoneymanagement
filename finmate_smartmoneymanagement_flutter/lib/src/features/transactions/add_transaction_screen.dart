@@ -351,7 +351,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           'food': 1,
           'transport': 2,
           'bill': 3,
-          'house': 4,
         };
         return necessaryOrder[normalized] ?? 1000;
       case fm.CategoryGroup.accumulation:

@@ -23,11 +23,10 @@ class _AiCoachIntroScreenState extends State<AiCoachIntroScreen> {
   }
 
   void _openChat({String? prefill}) {
-    Navigator.push(
+    Navigator.pushNamed(
       context,
-      MaterialPageRoute(
-        builder: (_) => AiCoachChatScreen(initialMessage: prefill),
-      ),
+      AiCoachChatScreen.routeName,
+      arguments: prefill,
     );
   }
 

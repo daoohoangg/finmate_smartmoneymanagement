@@ -33,8 +33,7 @@ public class CategoryServiceImpl implements CategoryService {
             new DefaultSubcategoryTemplate("Market", "local_grocery_store_outlined", "#FB923C"),
             new DefaultSubcategoryTemplate("Food", "restaurant_outlined", "#F97316"),
             new DefaultSubcategoryTemplate("Transport", "directions_car_filled", "#60A5FA"),
-            new DefaultSubcategoryTemplate("Bill", "receipt_long", "#34D399"),
-            new DefaultSubcategoryTemplate("House", "home_work_outlined", "#A78BFA"));
+            new DefaultSubcategoryTemplate("Bill", "receipt_long", "#34D399"));
 
     private static final List<DefaultSubcategoryTemplate> ACCUMULATION_DEFAULT_SUBCATEGORIES = List.of(
             new DefaultSubcategoryTemplate("Saving", "savings_outlined", "#2CB67D"),
@@ -131,7 +130,8 @@ public class CategoryServiceImpl implements CategoryService {
         }
         category.setIcon(request.getIcon());
         category.setColor(request.getColor());
-        applyHierarchyAndValidate(category, request, category.getUser() != null ? category.getUser().getId() : null, false);
+        applyHierarchyAndValidate(category, request, category.getUser() != null ? category.getUser().getId() : null,
+                false);
 
         if (Boolean.TRUE.equals(category.getIsPrimary())
                 && category.getType() == CategoryType.EXPENSE

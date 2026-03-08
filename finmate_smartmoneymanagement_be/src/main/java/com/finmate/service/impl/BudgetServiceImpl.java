@@ -166,9 +166,6 @@ public class BudgetServiceImpl implements BudgetService {
         if (!wallet.getUser().getId().equals(userId)) {
             throw new BadRequestException("Wallet does not belong to user");
         }
-        if (wallet.getBalance().compareTo(request.getAmount()) < 0) {
-            throw new BadRequestException("Insufficient wallet balance");
-        }
 
         wallet.setBalance(wallet.getBalance().subtract(request.getAmount()));
         walletRepository.save(wallet);

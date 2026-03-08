@@ -778,7 +778,7 @@ class _TransactionsPanel extends StatelessWidget {
             width: 82,
             height: 34,
             decoration: BoxDecoration(
-              color: AppColors.page,
+              color: const Color(0xFFF5F6FA),
               borderRadius: const BorderRadius.vertical(
                 bottom: Radius.circular(20),
               ),
@@ -1071,9 +1071,6 @@ class _CalendarTransaction {
     }
     if (category.contains('bill') || category.contains('hóa đơn')) {
       return Icons.receipt_long_outlined;
-    }
-    if (category.contains('house') || category.contains('nhà')) {
-      return Icons.home_work_outlined;
     }
     if (category.contains('saving') || category.contains('tiết kiệm')) {
       return Icons.savings_outlined;

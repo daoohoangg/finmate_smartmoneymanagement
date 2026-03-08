@@ -50,7 +50,7 @@ class CategoryDetailScreen extends StatelessWidget {
                   const _TransactionItem(
                     date: 'Oct 28',
                     title: 'Whole Foods Market',
-                    subtitle: 'Groceries - Household',
+                    subtitle: 'Groceries',
                     amount: '-\$142.50',
                     time: '2:14 PM',
                   ),

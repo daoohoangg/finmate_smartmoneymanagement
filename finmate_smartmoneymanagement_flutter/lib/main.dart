@@ -60,6 +60,20 @@ class FinMateApp extends StatelessWidget {
     return LoginScreen();
   }
 
+  Widget _buildGradientBackground(Widget child) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFFE3F2FD), Color(0xFFF8F9FA), Color(0xFFF8F9FA)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          stops: [0.0, 0.2, 1.0],
+        ),
+      ),
+      child: child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final storage = SessionStorage.instance;
@@ -71,64 +85,67 @@ class FinMateApp extends StatelessWidget {
       theme: buildAppTheme(),
       initialRoute: '/',
       routes: {
-        '/': (_) => _buildLanding(hasSession),
-        LoginScreen.routeName: (_) => const LoginScreen(),
-        RegisterScreen.routeName: (_) => const RegisterScreen(),
-        ForgotPasswordScreen.routeName: (_) => const ForgotPasswordScreen(),
-        OtpVerifyScreen.routeName: (_) => const OtpVerifyScreen(),
-        ResetPasswordScreen.routeName: (_) => const ResetPasswordScreen(),
-        AiCoachIntroScreen.routeName: (_) => const AiCoachIntroScreen(),
-        AiCoachChatScreen.routeName: (_) => const AiCoachChatScreen(),
-        MonthlyDashboardScreen.routeName: (_) => const MonthlyDashboardScreen(),
-        ExpenseBreakdownScreen.routeName: (_) => const ExpenseBreakdownScreen(),
-        CategoryDetailScreen.routeName: (_) => const CategoryDetailScreen(),
-        TrendAnalysisScreen.routeName: (_) => const TrendAnalysisScreen(),
-        WeeklyCalendarScreen.routeName: (_) => const WeeklyCalendarScreen(),
-        SpendingInsightsScreen.routeName: (_) => const SpendingInsightsScreen(),
-        AddTransactionScreen.routeName: (_) => const AddTransactionScreen(),
-        EditTransactionScreen.routeName: (_) => const EditTransactionScreen(),
+        '/': (_) => _buildGradientBackground(_buildLanding(hasSession)),
+        LoginScreen.routeName: (_) => _buildGradientBackground(const LoginScreen()),
+        RegisterScreen.routeName: (_) => _buildGradientBackground(const RegisterScreen()),
+        ForgotPasswordScreen.routeName: (_) => _buildGradientBackground(const ForgotPasswordScreen()),
+        OtpVerifyScreen.routeName: (_) => _buildGradientBackground(const OtpVerifyScreen()),
+        ResetPasswordScreen.routeName: (_) => _buildGradientBackground(const ResetPasswordScreen()),
+        AiCoachIntroScreen.routeName: (_) => _buildGradientBackground(const AiCoachIntroScreen()),
+        AiCoachChatScreen.routeName: (ctx) {
+          final args = ModalRoute.of(ctx)?.settings.arguments as String?;
+          return _buildGradientBackground(AiCoachChatScreen(initialMessage: args));
+        },
+        MonthlyDashboardScreen.routeName: (_) => _buildGradientBackground(const MonthlyDashboardScreen()),
+        ExpenseBreakdownScreen.routeName: (_) => _buildGradientBackground(const ExpenseBreakdownScreen()),
+        CategoryDetailScreen.routeName: (_) => _buildGradientBackground(const CategoryDetailScreen()),
+        TrendAnalysisScreen.routeName: (_) => _buildGradientBackground(const TrendAnalysisScreen()),
+        WeeklyCalendarScreen.routeName: (_) => _buildGradientBackground(const WeeklyCalendarScreen()),
+        SpendingInsightsScreen.routeName: (_) => _buildGradientBackground(const SpendingInsightsScreen()),
+        AddTransactionScreen.routeName: (_) => _buildGradientBackground(const AddTransactionScreen()),
+        EditTransactionScreen.routeName: (_) => _buildGradientBackground(const EditTransactionScreen()),
         DeleteTransactionScreen.routeName: (_) =>
-            const DeleteTransactionScreen(),
-        TransactionsListScreen.routeName: (_) => const TransactionsListScreen(),
+            _buildGradientBackground(const DeleteTransactionScreen()),
+        TransactionsListScreen.routeName: (_) => _buildGradientBackground(const TransactionsListScreen()),
         FilterTransactionsScreen.routeName: (_) =>
-            const FilterTransactionsScreen(),
-        SearchResultsScreen.routeName: (_) => const SearchResultsScreen(),
-        BudgetCreateScreen.routeName: (_) => const BudgetCreateScreen(),
+            _buildGradientBackground(const FilterTransactionsScreen()),
+        SearchResultsScreen.routeName: (_) => _buildGradientBackground(const SearchResultsScreen()),
+        BudgetCreateScreen.routeName: (_) => _buildGradientBackground(const BudgetCreateScreen()),
         BudgetCreateWarningScreen.routeName: (_) =>
-            const BudgetCreateWarningScreen(),
+            _buildGradientBackground(const BudgetCreateWarningScreen()),
         BudgetCreateSuccessScreen.routeName: (_) =>
-            const BudgetCreateSuccessScreen(),
+            _buildGradientBackground(const BudgetCreateSuccessScreen()),
         BudgetStatusTrackScreen.routeName: (_) =>
-            const BudgetStatusTrackScreen(),
+            _buildGradientBackground(const BudgetStatusTrackScreen()),
         BudgetStatusWarningScreen.routeName: (_) =>
-            const BudgetStatusWarningScreen(),
+            _buildGradientBackground(const BudgetStatusWarningScreen()),
         BudgetStatusExceededScreen.routeName: (_) =>
-            const BudgetStatusExceededScreen(),
+            _buildGradientBackground(const BudgetStatusExceededScreen()),
         BudgetStatusEmptyScreen.routeName: (_) =>
-            const BudgetStatusEmptyScreen(),
+            _buildGradientBackground(const BudgetStatusEmptyScreen()),
         SubCategoryBudgetDetailScreen.routeName: (_) =>
-            const SubCategoryBudgetDetailScreen(),
-        AllocateFundsScreen.routeName: (_) => const AllocateFundsScreen(),
+            _buildGradientBackground(const SubCategoryBudgetDetailScreen()),
+        AllocateFundsScreen.routeName: (_) => _buildGradientBackground(const AllocateFundsScreen()),
         AllocateFundsErrorScreen.routeName: (_) =>
-            const AllocateFundsErrorScreen(),
+            _buildGradientBackground(const AllocateFundsErrorScreen()),
         AllocateFundsDoneScreen.routeName: (_) =>
-            const AllocateFundsDoneScreen(),
-        OnboardingFlowScreen.routeName: (_) => const OnboardingFlowScreen(),
+            _buildGradientBackground(const AllocateFundsDoneScreen()),
+        OnboardingFlowScreen.routeName: (_) => _buildGradientBackground(const OnboardingFlowScreen()),
         PlanRecommendationScreen.routeName: (_) =>
-            const PlanRecommendationScreen(),
-        ManualAllocationScreen.routeName: (_) => const ManualAllocationScreen(),
-        ManageBudgetScreen.routeName: (_) => const ManageBudgetScreen(),
-        RecurringSetupScreen.routeName: (_) => const RecurringSetupScreen(),
-        RecurringCustomScreen.routeName: (_) => const RecurringCustomScreen(),
-        ManageCategoriesScreen.routeName: (_) => const ManageCategoriesScreen(),
-        CreateCategoryScreen.routeName: (_) => const CreateCategoryScreen(),
-        DeleteCategoryScreen.routeName: (_) => const DeleteCategoryScreen(),
-        ChangePasswordScreen.routeName: (_) => const ChangePasswordScreen(),
-        SettingsScreen.routeName: (_) => const SettingsScreen(),
+            _buildGradientBackground(const PlanRecommendationScreen()),
+        ManualAllocationScreen.routeName: (_) => _buildGradientBackground(const ManualAllocationScreen()),
+        ManageBudgetScreen.routeName: (_) => _buildGradientBackground(const ManageBudgetScreen()),
+        RecurringSetupScreen.routeName: (_) => _buildGradientBackground(const RecurringSetupScreen()),
+        RecurringCustomScreen.routeName: (_) => _buildGradientBackground(const RecurringCustomScreen()),
+        ManageCategoriesScreen.routeName: (_) => _buildGradientBackground(const ManageCategoriesScreen()),
+        CreateCategoryScreen.routeName: (_) => _buildGradientBackground(const CreateCategoryScreen()),
+        DeleteCategoryScreen.routeName: (_) => _buildGradientBackground(const DeleteCategoryScreen()),
+        ChangePasswordScreen.routeName: (_) => _buildGradientBackground(const ChangePasswordScreen()),
+        SettingsScreen.routeName: (_) => _buildGradientBackground(const SettingsScreen()),
       },
       onUnknownRoute: (settings) => MaterialPageRoute(
         settings: settings,
-        builder: (_) => _buildLanding(hasSession),
+        builder: (_) => _buildGradientBackground(_buildLanding(hasSession)),
       ),
     );
   }

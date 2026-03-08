@@ -239,7 +239,6 @@ class _ManageBudgetScreenState extends State<ManageBudgetScreen> {
     if (budgetName.isNotEmpty && categoryName.isNotEmpty) {
       if (budgetName != categoryName) return true;
     }
-    if (budget.savedAmount > 0) return true;
     return false;
   }
 

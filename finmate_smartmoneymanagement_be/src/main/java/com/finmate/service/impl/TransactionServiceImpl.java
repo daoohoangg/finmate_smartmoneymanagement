@@ -108,7 +108,6 @@ public class TransactionServiceImpl implements TransactionService {
                         null,
                         transaction.getTransactionDate());
             }
-            ensureSufficientBalance(wallet, request.getAmount());
             wallet.setBalance(wallet.getBalance().subtract(request.getAmount()));
             walletRepository.save(wallet);
             if (transaction.getBudget() != null) {
@@ -184,7 +183,7 @@ public class TransactionServiceImpl implements TransactionService {
             LocalDateTime startDate, LocalDateTime endDate, String keyword, java.math.BigDecimal minAmount,
             java.math.BigDecimal maxAmount) {
         return transactionRepository.findByFilters(userId, walletId, categoryId, keyword, minAmount, maxAmount,
-                        startDate, endDate).stream()
+                startDate, endDate).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -295,7 +294,6 @@ public class TransactionServiceImpl implements TransactionService {
                         excludeTransactionId,
                         transaction.getTransactionDate());
             }
-            ensureSufficientBalance(wallet, request.getAmount());
             wallet.setBalance(wallet.getBalance().subtract(request.getAmount()));
             walletRepository.save(wallet);
             if (transaction.getBudget() != null) {
@@ -506,14 +504,15 @@ public class TransactionServiceImpl implements TransactionService {
             java.math.BigDecimal amount,
             Long excludeTransactionId,
             LocalDateTime referenceDate) {
-        Budget budget = budgetRepository.findByUserIdAndCategoryId(userId, categoryId)
-                .orElseThrow(() -> new RuntimeException("No budget assigned for this category"));
+        java.util.Optional<Budget> budgetOpt = budgetRepository.findByUserIdAndCategoryId(userId, categoryId);
+        if (budgetOpt.isEmpty()) {
+            // No budget assigned - we allow saving the transaction anyway.
+            return;
+        }
+        Budget budget = budgetOpt.get();
         BigDecimal spent = calculateSpentForBudget(userId, budget, excludeTransactionId, referenceDate);
         BigDecimal available = budget.getAmountLimit().subtract(spent);
-        if (available.compareTo(amount) < 0) {
-            throw new RuntimeException("Insufficient budget available. Remaining: " + available.toPlainString()
-                    + ", required: " + amount.toPlainString());
-        }
+        // Exceeding the budget is allowed, so we no longer throw an exception here.
     }
 
     private BigDecimal calculateSpentForBudget(
