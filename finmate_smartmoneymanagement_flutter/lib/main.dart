@@ -43,6 +43,39 @@ import 'src/features/transactions/edit_transaction_screen.dart';
 import 'src/features/transactions/filter_transactions_screen.dart';
 import 'src/features/transactions/search_results_screen.dart';
 import 'src/features/transactions/transactions_list_screen.dart';
+import 'src/shared/widgets/finmate_top_nav.dart';
+
+// Navigation globals
+final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
+final ValueNotifier<String> currentRouteNotifier = ValueNotifier<String>('/');
+
+class AppRouteObserver extends RouteObserver<PageRoute<dynamic>> {
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPush(route, previousRoute);
+    if (route.settings.name != null) {
+      currentRouteNotifier.value = route.settings.name!;
+    }
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPop(route, previousRoute);
+    if (previousRoute?.settings.name != null) {
+      currentRouteNotifier.value = previousRoute!.settings.name!;
+    }
+  }
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
+    if (newRoute?.settings.name != null) {
+      currentRouteNotifier.value = newRoute!.settings.name!;
+    }
+  }
+}
+
+final AppRouteObserver appRouteObserver = AppRouteObserver();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -80,10 +113,32 @@ class FinMateApp extends StatelessWidget {
     final hasSession = storage.token != null;
     return MaterialApp(
       key: ValueKey<bool>(hasSession),
+      navigatorKey: appNavigatorKey,
+      navigatorObservers: [appRouteObserver],
       debugShowCheckedModeBanner: false,
       title: 'FinMate',
       theme: buildAppTheme(),
       initialRoute: '/',
+      builder: (context, child) {
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            if (constraints.maxWidth > 800) {
+              return Scaffold(
+                backgroundColor: Colors.transparent,
+                appBar: PreferredSize(
+                  preferredSize: const Size.fromHeight(64),
+                  child: FinMateTopNav(
+                    currentRouteNotifier: currentRouteNotifier,
+                    navigatorKey: appNavigatorKey,
+                  ),
+                ),
+                body: child ?? const SizedBox.shrink(),
+              );
+            }
+            return child ?? const SizedBox.shrink();
+          },
+        );
+      },
       routes: {
         '/': (_) => _buildGradientBackground(_buildLanding(hasSession)),
         LoginScreen.routeName: (_) => _buildGradientBackground(const LoginScreen()),
