@@ -103,6 +103,14 @@ public class BudgetServiceImpl implements BudgetService {
         budget.setAmountLimit(request.getAmountLimit());
         budget.setPeriod(request.getPeriod());
 
+        if (StringUtils.hasText(request.getStatus())) {
+            try {
+                budget.setStatus(com.finmate.enums.BudgetStatus.valueOf(request.getStatus().toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException("Invalid budget status");
+            }
+        }
+
         Budget updatedBudget = budgetRepository.save(budget);
         return mapToResponse(updatedBudget, budget.getUser().getId());
     }
@@ -221,7 +229,8 @@ public class BudgetServiceImpl implements BudgetService {
                 spent,
                 available,
                 budget.getPeriod(),
-                percentageUsed);
+                percentageUsed,
+                budget.getStatus());
     }
 
     private String resolveBudgetName(String requestedName, String categoryName) {

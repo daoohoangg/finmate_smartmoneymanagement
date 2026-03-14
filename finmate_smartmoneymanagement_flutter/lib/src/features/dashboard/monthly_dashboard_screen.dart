@@ -4,12 +4,14 @@ import '../../core/constants/app_colors.dart';
 import '../budget/models/budget.dart';
 import '../budget/services/budget_service.dart';
 import '../budget/budget_create_screen.dart';
+import '../budget/budget_status_track_screen.dart';
 import '../categories/manage_categories_screen.dart';
 import '../planning/manage_budget_screen.dart';
 import '../recurring/recurring_setup_screen.dart';
 import '../transactions/add_transaction_screen.dart';
 import '../transactions/services/transaction_service.dart';
 import '../transactions/transactions_list_screen.dart';
+import '../utilities/utilities_screen.dart';
 import '../../shared/widgets/finmate_bottom_nav.dart';
 
 class MonthlyDashboardScreen extends StatefulWidget {
@@ -259,28 +261,28 @@ class _TopActionRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _ActionButton(
-            label: 'Nhập\ngiao dịch',
+            label: 'Add\nTransaction',
             icon: Icons.post_add_rounded,
             color: const Color(0xFF20C997),
             onTap: () => openRoute(Navigator.pushNamed(context, AddTransactionScreen.routeName)),
           ),
           _ActionButton(
-            label: 'Biến động\nthu chi',
+            label: 'Cash\nFlow',
             icon: Icons.ssid_chart,
             color: const Color(0xFF15AABF),
             onTap: () => openRoute(Navigator.pushNamed(context, TransactionsListScreen.routeName)),
           ),
           _ActionButton(
-            label: 'Quỹ\ntiết kiệm',
+            label: 'Savings\nFunds',
             icon: Icons.savings_outlined,
             color: const Color(0xFF4C6EF5),
-            onTap: () => openRoute(Navigator.pushNamed(context, BudgetCreateScreen.routeName)),
+            onTap: () => openRoute(Navigator.pushNamed(context, BudgetStatusTrackScreen.routeName)),
           ),
           _ActionButton(
-            label: 'Tiện ích\nkhác',
+            label: 'More\nUtilities',
             icon: Icons.grid_view_rounded,
             color: const Color(0xFF868E96),
-            onTap: () => openRoute(Navigator.pushNamed(context, ManageCategoriesScreen.routeName)),
+            onTap: () => openRoute(Navigator.pushNamed(context, UtilitiesScreen.routeName)),
           ),
         ],
       ),
@@ -342,7 +344,7 @@ class _SituationHeader extends StatelessWidget {
     return Row(
       children: [
         const Text(
-          'Tình hình thu chi',
+          'Income & Expenses',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
@@ -367,7 +369,7 @@ class _SituationHeader extends StatelessWidget {
               const Icon(Icons.bar_chart, color: Color(0xFFD6336C), size: 16),
               const SizedBox(width: 4),
               const Text(
-                'Xu hướng',
+                'Trends',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -414,11 +416,11 @@ class _SituationCard extends StatelessWidget {
     final expense = currentData?.expense ?? 0.0;
     final income = currentData?.income ?? 0.0;
 
-    String monthLabel = 'Tháng này';
+    String monthLabel = 'This month';
     if (selectedIndex == 0) {
-      monthLabel = '2 tháng trước';
+      monthLabel = '2 months ago';
     } else if (selectedIndex == 1) {
-      monthLabel = 'Tháng trước';
+      monthLabel = 'Last month';
     }
 
     // Calculate max expense for chart scaling
@@ -498,7 +500,7 @@ class _SituationCard extends StatelessWidget {
                             const Icon(Icons.arrow_outward, color: Color(0xFFD6336C), size: 14),
                             const SizedBox(width: 4),
                             const Text(
-                              'Chi tiêu',
+                              'Spending',
                               style: TextStyle(fontSize: 13, color: Color(0xFF495057), fontWeight: FontWeight.w500),
                             ),
                           ],
@@ -532,7 +534,7 @@ class _SituationCard extends StatelessWidget {
                             const Icon(Icons.call_received, color: Color(0xFF495057), size: 14),
                             const SizedBox(width: 4),
                             const Text(
-                              'Thu nhập',
+                              'Income',
                               style: TextStyle(fontSize: 13, color: Color(0xFF495057), fontWeight: FontWeight.w500),
                             ),
                           ],
@@ -554,7 +556,7 @@ class _SituationCard extends StatelessWidget {
             ),
           ),
           
-          // Phần footer so sánh tháng trước
+          // Previous month comparison footer
           if (selectedIndex > 0)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
@@ -573,16 +575,16 @@ class _SituationCard extends StatelessWidget {
                         builder: (context) {
                           final previousExpense = recentMonths[selectedIndex - 1].expense;
                           if (previousExpense == 0) {
-                            return const Text('Không có dữ liệu tháng trước');
+                            return const Text('No data for last month');
                           }
                           final diff = expense - previousExpense;
                           final diffStr = formatter(diff.abs());
                           if (diff > 0) {
-                            return Text('Chi tiêu nhiều hơn tháng trước $diffStr', style: const TextStyle(color: Color(0xFFD6336C), fontWeight: FontWeight.w500, fontSize: 13));
+                            return Text('Spent $diffStr more than last month', style: const TextStyle(color: Color(0xFFD6336C), fontWeight: FontWeight.w500, fontSize: 13));
                           } else if (diff < 0) {
-                            return Text('Chi tiêu ít hơn tháng trước $diffStr', style: const TextStyle(color: Color(0xFF20C997), fontWeight: FontWeight.w500, fontSize: 13));
+                            return Text('Spent $diffStr less than last month', style: const TextStyle(color: Color(0xFF20C997), fontWeight: FontWeight.w500, fontSize: 13));
                           }
-                          return const Text('Không có biến động so với tháng trước', style: TextStyle(fontSize: 13, color: Color(0xFF495057), fontWeight: FontWeight.w500));
+                          return const Text('No change since last month', style: TextStyle(fontSize: 13, color: Color(0xFF495057), fontWeight: FontWeight.w500));
                         },
                       ),
                     ),
@@ -592,7 +594,7 @@ class _SituationCard extends StatelessWidget {
             ),
 
           if (recentMonths.every((m) => m.expense == 0 && m.income == 0) && !isLoading)
-            // Phần biểu đồ rỗng (Empty state)
+            // Empty chart state
             Container(
               margin: const EdgeInsets.fromLTRB(16, 16, 16, 16),
               padding: const EdgeInsets.all(16),
@@ -603,7 +605,7 @@ class _SituationCard extends StatelessWidget {
               child: Column(
                 children: [
                   const Text(
-                    'Ghi chép mọi chi tiêu giúp bạn theo dõi chính xác tình hình tài chính của mình.',
+                    'Record every transaction to track your financial health accurately.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 14,
@@ -620,7 +622,7 @@ class _SituationCard extends StatelessWidget {
                         await onDataChanged.call();
                       },
                       icon: const Icon(Icons.post_add),
-                      label: const Text('Nhập giao dịch chi', style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: const Text('Record an expense', style: TextStyle(fontWeight: FontWeight.bold)),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: const Color(0xFFD6336C),
                         side: const BorderSide(color: Color(0xFFD6336C)),
@@ -804,7 +806,7 @@ class _BudgetSection extends StatelessWidget {
                     descLabel: budget.categoryName,
                     amount: _formatVnd(budget.amountLimit),
                     statusLabel:
-                        budget.percentageUsed >= 100 ? 'Vượt mức' : 'Đang theo dõi',
+                        budget.percentageUsed >= 100 ? 'Overspent' : 'On Track',
                     statusIcon: budget.percentageUsed >= 100
                         ? Icons.warning_rounded
                         : Icons.check_circle,
@@ -819,15 +821,15 @@ class _BudgetSection extends StatelessWidget {
                 );
               }),
               _BudgetCard(
-                title: 'Ngân sách tổng',
+                title: 'Total Budget',
                 icon: Icons.savings,
                 iconBg: const Color(0xFFFFA8C2),
                 descColor: const Color(0xFF868E96),
                 descLabel: spendingBudgets.isEmpty
-                    ? 'Chưa có ngân sách chi tiêu'
-                    : 'Tổng ngân sách chi tiêu',
+                    ? 'No spending budget yet'
+                    : 'Total spending budget',
                 amount: _formatVnd(totalSpendingBudget),
-                statusLabel: spendingBudgets.isEmpty ? 'Đặt ngay' : 'Xem tất cả',
+                statusLabel: spendingBudgets.isEmpty ? 'Set Now' : 'View All',
                 statusIcon: Icons.arrow_forward_rounded,
                 statusBg: const Color(0xFFFFF0F5),
                 statusTextColor: const Color(0xFFD6336C),
@@ -950,8 +952,8 @@ class _FinancialPictureSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    void openCreateFund() {
-      Navigator.of(context).pushNamed('/budget/create');
+    void openFundStatus() {
+      Navigator.of(context).pushNamed('/budget/status-track');
     }
 
     final hasFund = funds.isNotEmpty;
@@ -963,7 +965,7 @@ class _FinancialPictureSection extends StatelessWidget {
         Row(
            children: const [
              Text(
-               'Bức tranh tài chính',
+               'Financial Picture',
                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF333333)),
              ),
            ],
@@ -982,7 +984,7 @@ class _FinancialPictureSection extends StatelessWidget {
                  children: const [
                    Icon(Icons.account_balance_wallet_outlined, color: Color(0xFF15AABF), size: 20),
                    SizedBox(width: 8),
-                   Text('Quản lý toàn diện hơn', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF333333))),
+                   Text('More management', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF333333))),
                    Icon(Icons.chevron_right, color: Color(0xFF868E96), size: 20),
                    Spacer(),
                    Icon(Icons.more_horiz, color: Color(0xFF868E96)),
@@ -1001,13 +1003,13 @@ class _FinancialPictureSection extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Ưu đãi từ đầu năm', style: TextStyle(fontSize: 12, color: Color(0xFF495057))),
+                            const Text('Offers since start of year', style: TextStyle(fontSize: 12, color: Color(0xFF495057))),
                             const SizedBox(height: 4),
-                            const Text('7.000đ', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF333333))),
+                            const Text('7,000 VND', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF333333))),
                             const SizedBox(height: 16),
                             Row(
                               children: [
-                                const Text('+0đ', style: TextStyle(fontSize: 13, color: Color(0xFF20C997), fontWeight: FontWeight.w600)),
+                                const Text('+0 VND', style: TextStyle(fontSize: 13, color: Color(0xFF20C997), fontWeight: FontWeight.w600)),
                                 const Spacer(),
                                 Icon(Icons.local_offer, color: const Color(0xFFD6336C).withOpacity(0.5), size: 24),
                               ],
@@ -1019,7 +1021,7 @@ class _FinancialPictureSection extends StatelessWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: GestureDetector(
-                        onTap: openCreateFund,
+                        onTap: openFundStatus,
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
@@ -1029,13 +1031,13 @@ class _FinancialPictureSection extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(hasFund ? firstFund!.categoryName : 'Dành 10% thu nhập', style: const TextStyle(fontSize: 12, color: Color(0xFF495057))),
+                              Text(hasFund ? firstFund!.categoryName : 'Save 10% of income', style: const TextStyle(fontSize: 12, color: Color(0xFF495057))),
                               const SizedBox(height: 4),
-                              Text(hasFund ? firstFund!.name : 'Quỹ dự phòng', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFFD6336C))),
+                              Text(hasFund ? firstFund!.name : 'Emergency Fund', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFFD6336C))),
                               const SizedBox(height: 16),
                               Row(
                                 children: [
-                                  Text(hasFund ? '${firstFund!.percentageUsed.toStringAsFixed(0)}% đạt được' : 'Tạo thử ngay', style: const TextStyle(fontSize: 11, color: Color(0xFF495057))),
+                                  Text(hasFund ? '${firstFund!.percentageUsed.toStringAsFixed(0)}% reached' : 'Try creating now', style: const TextStyle(fontSize: 11, color: Color(0xFF495057))),
                                   const Icon(Icons.arrow_forward, size: 12),
                                   const Spacer(),
                                   Icon(Icons.savings_outlined, color: Colors.orange.shade300, size: 24),
@@ -1058,7 +1060,7 @@ class _FinancialPictureSection extends StatelessWidget {
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Số liệu chi tiêu khác với hạn mức giao dịch mà ngân hàng nhà nước quy định. Xem chi tiết',
+                          'Spending data differs from transaction limits set by the State Bank. See details',
                           style: TextStyle(fontSize: 12, color: Color(0xFF495057)),
                         ),
                       )

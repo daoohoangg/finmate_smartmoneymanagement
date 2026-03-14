@@ -133,7 +133,7 @@ class _AvailableCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '3.000.000 VND',
+            '3,000,000 VND',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
               color: AppColors.primaryRed,
               fontWeight: FontWeight.w700,

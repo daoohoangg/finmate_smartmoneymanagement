@@ -11,4 +11,5 @@ public class BudgetRequest {
     private Long categoryId;
     private BigDecimal amountLimit;
     private BudgetPeriod period;
+    private String status;
 }

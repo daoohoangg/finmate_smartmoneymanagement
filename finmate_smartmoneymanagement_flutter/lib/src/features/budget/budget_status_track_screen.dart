@@ -26,6 +26,7 @@ class _BudgetStatusTrackScreenState extends State<BudgetStatusTrackScreen> {
   String? _error;
   List<Budget> _budgets = const [];
   List<Wallet> _wallets = const [];
+  String _selectedFilter = 'All'; // 'All', 'Processing', 'Completed'
 
   @override
   void initState() {
@@ -40,10 +41,15 @@ class _BudgetStatusTrackScreenState extends State<BudgetStatusTrackScreen> {
       _error = null;
     });
     try {
-      final budgets = await _budgetService.getBudgets();
+      final allBudgets = await _budgetService.getBudgets();
+      final fundsOnly = allBudgets.where((b) {
+        final bName = b.name.trim().toLowerCase();
+        final cName = b.categoryName.trim().toLowerCase();
+        return bName.isNotEmpty && cName.isNotEmpty && bName != cName;
+      }).toList();
       if (!mounted) return;
       setState(() {
-        _budgets = budgets;
+        _budgets = fundsOnly;
         _isLoading = false;
       });
     } catch (e) {
@@ -79,7 +85,7 @@ class _BudgetStatusTrackScreenState extends State<BudgetStatusTrackScreen> {
       (_) => ',',
     );
     final prefix = rounded < 0 ? '-' : '';
-    return '$prefix$separatedđ';
+    return '$prefix$separated VND';
   }
 
   void _showSnack(String message) {
@@ -101,10 +107,10 @@ class _BudgetStatusTrackScreenState extends State<BudgetStatusTrackScreen> {
   }
 
   String _budgetTitle(Budget budget) {
-    if (budget.name.trim().isNotEmpty) {
+    if (budget.name.trim().length > 0) {
       return budget.name.trim();
     }
-    if (budget.categoryName.trim().isNotEmpty) {
+    if (budget.categoryName.trim().length > 0) {
       return budget.categoryName.trim();
     }
     return 'Fund #${budget.id}';
@@ -112,14 +118,14 @@ class _BudgetStatusTrackScreenState extends State<BudgetStatusTrackScreen> {
 
   num? _parseContributionAmount(String raw) {
     final cleaned = raw.trim().replaceAll(RegExp(r'[^0-9.]'), '');
-    if (cleaned.isEmpty) return null;
+    if (cleaned.length == 0) return null;
     final parsed = num.tryParse(cleaned);
     if (parsed == null || parsed <= 0) return null;
     return parsed;
   }
 
   Future<void> _openAddMoneyDialog(Budget budget) async {
-    if (_wallets.isEmpty) {
+    if (_wallets.length == 0) {
       await _loadWallets();
     }
     if (!mounted) return;
@@ -362,16 +368,71 @@ class _BudgetStatusTrackScreenState extends State<BudgetStatusTrackScreen> {
                   valueColor: color,
                 ),
                 const SizedBox(height: 14),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: () async {
-                      Navigator.pop(context);
-                      await _openAddMoneyDialog(budget);
-                    },
-                    icon: const Icon(Icons.add),
-                    label: const Text('Add money'),
-                  ),
+                Row(
+                  children: [
+                    if (budget.status != BudgetStatus.completed)
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            final navigator = Navigator.of(context);
+                            try {
+                              await _budgetService.updateBudgetStatus(
+                                budgetId: budget.id,
+                                status: BudgetStatus.completed,
+                                amountLimit: budget.amountLimit,
+                                period: budget.period,
+                              );
+                              navigator.pop();
+                              _showSnack('Goal marked as complete!');
+                              _loadBudgets();
+                            } catch (e) {
+                              _showSnack('Failed to update status: $e');
+                            }
+                          },
+                          icon: const Icon(Icons.check_circle_outline),
+                          label: const Text('Complete'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.success,
+                            side: const BorderSide(color: AppColors.success),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                        ),
+                      ),
+                    if (budget.status != BudgetStatus.completed)
+                      const SizedBox(width: 12),
+                    if (budget.status != BudgetStatus.completed)
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: () async {
+                            Navigator.pop(context);
+                            await _openAddMoneyDialog(budget);
+                          },
+                          icon: const Icon(Icons.add),
+                          label: const Text('Add money'),
+                          style: FilledButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                        ),
+                      ),
+                    if (budget.status == BudgetStatus.completed)
+                      const Expanded(
+                        child: Center(
+                          child: Text(
+                            'Goal Reached! 🎉',
+                            style: TextStyle(
+                              color: AppColors.success,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ],
             ),
@@ -419,7 +480,7 @@ class _BudgetStatusTrackScreenState extends State<BudgetStatusTrackScreen> {
       );
     }
 
-    if (_budgets.isEmpty) {
+    if (_budgets.length == 0) {
       return Center(
         child: Text(
           'No funds found',
@@ -431,15 +492,22 @@ class _BudgetStatusTrackScreenState extends State<BudgetStatusTrackScreen> {
     }
 
     final completedCount = _budgets
-        .where((budget) => _savingPercent(budget) >= 100)
+        .where((budget) => budget.status == BudgetStatus.completed)
         .length;
+
+    final filteredBudgets = _budgets.where((b) {
+      if (_selectedFilter == 'All') return true;
+      if (_selectedFilter == 'Processing') return b.status == BudgetStatus.processing;
+      if (_selectedFilter == 'Completed') return b.status == BudgetStatus.completed;
+      return true;
+    }).toList();
 
     return RefreshIndicator(
       onRefresh: _loadBudgets,
       child: ListView.separated(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        itemCount: _budgets.length + 1,
+        itemCount: filteredBudgets.length + 1,
         separatorBuilder: (context, index) => const SizedBox(height: 10),
         itemBuilder: (context, index) {
           if (index == 0) {
@@ -448,7 +516,7 @@ class _BudgetStatusTrackScreenState extends State<BudgetStatusTrackScreen> {
               completedBudgets: completedCount,
             );
           }
-          final budget = _budgets[index - 1];
+          final budget = filteredBudgets[index - 1];
           final progress = _savingPercent(budget);
           final color = _progressColor(progress);
           return _BudgetItemCard(
@@ -459,6 +527,7 @@ class _BudgetStatusTrackScreenState extends State<BudgetStatusTrackScreen> {
             progressText: '${progress.toStringAsFixed(0)}%',
             usageColor: color,
             progress: (progress / 100).clamp(0, 1),
+            status: budget.status,
             onTap: () => _openBudgetDetail(budget),
             onAddMoney: () => _openAddMoneyDialog(budget),
           );
@@ -491,9 +560,73 @@ class _BudgetStatusTrackScreenState extends State<BudgetStatusTrackScreen> {
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
-            child: _buildBody(context),
+            child: Column(
+              children: [
+                _buildFilterBar(),
+                Expanded(child: _buildBody(context)),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: FilledButton.icon(
+                      onPressed: () {
+                        // In case there is an Add Saving Goals / Create Budget screen
+                        Navigator.pushNamed(context, '/budget/create');
+                      },
+                      icon: const Icon(Icons.flag_outlined),
+                      label: const Text('Add Saving Goals'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.primaryRed,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildFilterBar() {
+    final filters = ['All', 'Processing', 'Completed'];
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+      child: Row(
+        children: filters.map((filter) {
+          final isSelected = _selectedFilter == filter;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ChoiceChip(
+              label: Text(filter),
+              selected: isSelected,
+              onSelected: (selected) {
+                if (selected) {
+                  setState(() => _selectedFilter = filter);
+                }
+              },
+              selectedColor: AppColors.primaryBlue.withValues(alpha: 0.2),
+              labelStyle: TextStyle(
+                color: isSelected ? AppColors.primaryBlue : AppColors.textSecondary,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                fontSize: 12,
+              ),
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: BorderSide(
+                  color: isSelected ? AppColors.primaryBlue : AppColors.border,
+                ),
+              ),
+              showCheckmark: false,
+            ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -565,6 +698,7 @@ class _BudgetItemCard extends StatelessWidget {
     required this.progressText,
     required this.usageColor,
     required this.progress,
+    required this.status,
     required this.onTap,
     required this.onAddMoney,
   });
@@ -576,6 +710,7 @@ class _BudgetItemCard extends StatelessWidget {
   final String progressText;
   final Color usageColor;
   final double progress;
+  final BudgetStatus status;
   final VoidCallback onTap;
   final VoidCallback onAddMoney;
 
@@ -616,11 +751,31 @@ class _BudgetItemCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 2),
-              Text(
-                categoryName,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    categoryName,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: status == BudgetStatus.completed ? AppColors.success.withValues(alpha: 0.15) : AppColors.primaryBlue.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      status.label,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: status == BudgetStatus.completed ? AppColors.success : AppColors.primaryBlue,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 10,
+                      )
+                    )
+                  )
+                ],
               ),
               const SizedBox(height: 8),
               ClipRRect(
@@ -644,17 +799,23 @@ class _BudgetItemCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  TextButton.icon(
-                    onPressed: onAddMoney,
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.primaryBlue,
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  if (status != BudgetStatus.completed)
+                    TextButton.icon(
+                      onPressed: onAddMoney,
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.primaryBlue,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      icon: const Icon(Icons.add, size: 16),
+                      label: const Text('Add'),
                     ),
-                    icon: const Icon(Icons.add, size: 16),
-                    label: const Text('Add'),
-                  ),
+                  if (status == BudgetStatus.completed)
+                    const Padding(
+                      padding: EdgeInsets.only(left: 8),
+                      child: Icon(Icons.celebration, color: AppColors.success, size: 18),
+                    ),
                 ],
               ),
             ],

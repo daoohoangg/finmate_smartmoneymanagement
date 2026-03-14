@@ -246,7 +246,7 @@ class _WeeklyCalendarScreenState extends State<WeeklyCalendarScreen>
                               ),
                             _MonthToolbar(
                               monthText:
-                                  'Tháng ${_visibleMonth.month}/${_visibleMonth.year}',
+                                  'Month ${_visibleMonth.month}/${_visibleMonth.year}',
                               showAmounts: _showAmounts,
                               onToggleAmount: () {
                                 setState(() {
@@ -331,7 +331,7 @@ class _CalendarHeader extends StatelessWidget {
               ),
               const SizedBox(width: 2),
               Text(
-                'Lịch',
+                'Calendar',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontSize: 42,
                   fontWeight: FontWeight.w800,
@@ -414,7 +414,7 @@ class _MonthSummaryCard extends StatelessWidget {
         children: [
           Expanded(
             child: _SummaryColumn(
-              title: 'Thu nhập',
+              title: 'Income',
               value: _formatCurrencyVnd(summary.income),
               color: AppColors.success,
             ),
@@ -422,7 +422,7 @@ class _MonthSummaryCard extends StatelessWidget {
           const _SummaryDivider(),
           Expanded(
             child: _SummaryColumn(
-              title: 'Chi tiêu',
+              title: 'Spending',
               value: _formatCurrencyVnd(summary.expense),
               color: AppColors.textPrimary,
             ),
@@ -430,7 +430,7 @@ class _MonthSummaryCard extends StatelessWidget {
           const _SummaryDivider(),
           Expanded(
             child: _SummaryColumn(
-              title: 'Chênh lệch',
+              title: 'Difference',
               value: _formatCurrencyVnd(summary.balance, showSign: true),
               color: summary.balance < 0
                   ? AppColors.textPrimary
@@ -499,7 +499,7 @@ class _WeekdayHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const labels = <String>['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+    const labels = <String>['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     return Row(
       children: labels.map((label) {
         return Expanded(
@@ -717,9 +717,9 @@ class _LegendRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: const [
-        _LegendDot(color: AppColors.success, label: 'Thu'),
+        _LegendDot(color: AppColors.success, label: 'In'),
         SizedBox(width: 22),
-        _LegendDot(color: AppColors.textPrimary, label: 'Chi'),
+        _LegendDot(color: AppColors.textPrimary, label: 'Out'),
       ],
     );
   }
@@ -798,7 +798,7 @@ class _TransactionsPanel extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Danh sách giao dịch',
+                      'Transaction List',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontSize: 44,
                         fontWeight: FontWeight.w800,
@@ -824,7 +824,7 @@ class _TransactionsPanel extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Không có giao dịch trong ngày này.',
+                              'No transactions for this day.',
                               style: Theme.of(context).textTheme.bodyMedium
                                   ?.copyWith(color: AppColors.textSecondary),
                             ),
@@ -832,7 +832,7 @@ class _TransactionsPanel extends StatelessWidget {
                             OutlinedButton.icon(
                               onPressed: onOpenTransactionEntry,
                               icon: const Icon(Icons.edit_note_rounded),
-                              label: const Text('Ghi chép giao dịch'),
+                              label: const Text('Record Transaction'),
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: AppColors.primaryBlue,
                                 side: const BorderSide(
@@ -990,7 +990,7 @@ class _CalendarError extends StatelessWidget {
               ).textTheme.bodyMedium?.copyWith(color: AppColors.primaryRed),
             ),
           ),
-          TextButton(onPressed: onRetry, child: const Text('Thử lại')),
+          TextButton(onPressed: onRetry, child: const Text('Retry')),
         ],
       ),
     );
@@ -1111,17 +1111,17 @@ class _CalendarTransaction {
 
     switch (type) {
       case 'INCOME':
-        return 'Thu nhập';
+        return 'Income';
       case 'EXPENSE':
-        return 'Chi tiêu';
+        return 'Expense';
       case 'TRANSFER':
-        return 'Chuyển khoản';
+        return 'Transfer';
       case 'SAVINGS_COMMIT':
-        return 'Gửi tiết kiệm';
+        return 'Savings Deposit';
       case 'INVESTMENT_EXECUTION':
-        return 'Đầu tư';
+        return 'Investment';
       default:
-        return 'Giao dịch';
+        return 'Transaction';
     }
   }
 
@@ -1130,7 +1130,7 @@ class _CalendarTransaction {
     if (trimmedWallet != null && trimmedWallet.isNotEmpty) {
       return trimmedWallet;
     }
-    return 'Ví chưa xác định';
+    return 'Unknown wallet';
   }
 
   String get amountLabel {
@@ -1184,8 +1184,14 @@ DateTime? _toDateTime(dynamic value) {
   return DateTime.tryParse(raw);
 }
 
+String _monthShort(int month) {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  if (month < 1 || month > 12) return '';
+  return months[month - 1];
+}
+
 String _formatDateLabel(DateTime date) {
-  return '${date.day}/${date.month}/${date.year}';
+  return '${_monthShort(date.month)} ${date.day}, ${date.year}';
 }
 
 String _formatCompactAmount(double amount) {
@@ -1213,7 +1219,7 @@ String _formatCurrencyVnd(double amount, {bool showSign = false}) {
   final absolute = rounded.abs().toString();
   final grouped = absolute.replaceAllMapped(
     RegExp(r'\B(?=(\d{3})+(?!\d))'),
-    (_) => '.',
+    (_) => ',',
   );
-  return '$sign$groupedđ';
+  return '$sign$grouped VND';
 }

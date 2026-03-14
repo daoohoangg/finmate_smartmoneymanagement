@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../dashboard/monthly_dashboard_screen.dart';
+import '../../shared/widgets/finmate_bottom_nav.dart';
+import '../transactions/services/transaction_service.dart';
 
 class SubCategoryBudgetDetailArgs {
   const SubCategoryBudgetDetailArgs({
@@ -34,9 +36,9 @@ class SubCategoryBudgetDetailScreen extends StatefulWidget {
 class _SubCategoryBudgetDetailScreenState
     extends State<SubCategoryBudgetDetailScreen> {
   static const List<String> _transactionTabs = <String>[
-    'Tất cả',
-    'Top chi tiêu',
-    'Top người nhận',
+    'All',
+    'Top Spending',
+    'Top Recipients',
   ];
 
   bool _didLoadArgs = false;
@@ -44,11 +46,44 @@ class _SubCategoryBudgetDetailScreenState
   int _selectedTransactionTab = 0;
   SubCategoryBudgetDetailArgs _args = const SubCategoryBudgetDetailArgs(
     categoryId: 0,
-    title: 'Chi tiết ngân sách',
-    mainCategoryName: 'Danh mục',
+    title: 'Budget Detail',
+    mainCategoryName: 'Category',
     totalBudget: 0,
     availableBudget: 0,
   );
+
+  final TransactionService _transactionService = TransactionService();
+  bool _isLoadingTransactions = true;
+  List<Map<String, dynamic>> _filteredTransactions = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTransactions();
+  }
+
+  Future<void> _loadTransactions() async {
+    setState(() => _isLoadingTransactions = true);
+    try {
+      final txs = await _transactionService.getTransactions();
+      if (!mounted) return;
+      
+      // Filter by category
+      final categoryTxs = txs.where((tx) {
+        final catId = tx['categoryId'];
+        // Note: categoryId might be int or String from API
+        return catId.toString() == _args.categoryId.toString();
+      }).toList();
+
+      setState(() {
+        _filteredTransactions = categoryTxs;
+        _isLoadingTransactions = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoadingTransactions = false);
+    }
+  }
 
   @override
   void didChangeDependencies() {
@@ -80,13 +115,16 @@ class _SubCategoryBudgetDetailScreenState
     final availableBudget = max<double>(0, _args.availableBudget);
     final spentBudget = max<double>(0, totalBudget - availableBudget);
     final remainingDays = _daysUntilMonthEnd(now);
-    final statusText = availableBudget > 0 ? 'Tốt' : 'Cần chú ý';
+    final statusText = availableBudget > 0 ? 'Good' : 'Needs attention';
     final statusColor = availableBudget > 0
         ? const Color(0xFF16A34A)
         : AppColors.primaryRed;
 
     return Scaffold(
       backgroundColor: AppColors.page,
+      bottomNavigationBar: const FinMateBottomNav(
+        active: FinMateNavItem.overview,
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -104,7 +142,7 @@ class _SubCategoryBudgetDetailScreenState
                           children: [
                             Expanded(
                               child: Text(
-                                'Chi tiêu tháng ${now.month}',
+                                'Spending in month ${now.month}',
                                 style: Theme.of(context).textTheme.headlineSmall
                                     ?.copyWith(
                                       fontSize: 42,
@@ -145,17 +183,28 @@ class _SubCategoryBudgetDetailScreenState
                           color: Color(0xFF06B6D4),
                           dashWidth: 11,
                         ),
-                        const SizedBox(height: 150),
+                        const SizedBox(height: 100),
+                        Center(
+                          child: Text(
+                            'Spending Analytics coming soon...',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              fontStyle: FontStyle.italic,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 50),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: const [
-                            _AxisLabel(text: '10'),
-                            _AxisLabel(text: '11'),
-                            _AxisLabel(text: '12'),
-                            _AxisLabel(text: '1/2026'),
-                            _AxisLabel(text: '2'),
-                            _AxisLabel(text: '3', color: AppColors.primaryBlue),
-                          ],
+                          children: List<Widget>.generate(6, (i) {
+                            final date = DateTime(now.year, now.month - (5 - i), 1);
+                            final label = i == 5 ? '${date.month}' : '${date.month}';
+                            final isCurrent = i == 5;
+                            return _AxisLabel(
+                              text: i == 3 && date.month == 1 ? '1/${date.year}' : label,
+                              color: isCurrent ? AppColors.primaryBlue : AppColors.textMuted,
+                            );
+                          }),
                         ),
                         const SizedBox(height: 10),
                         Row(
@@ -170,7 +219,7 @@ class _SubCategoryBudgetDetailScreenState
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              'Hạn mức ngân sách mỗi tháng',
+                              'Monthly budget limit',
                               style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(color: AppColors.textSecondary),
                             ),
@@ -180,7 +229,7 @@ class _SubCategoryBudgetDetailScreenState
                         Row(
                           children: [
                             Text(
-                              'Ngân sách',
+                              'Budget',
                               style: Theme.of(context).textTheme.titleLarge
                                   ?.copyWith(fontWeight: FontWeight.w700),
                             ),
@@ -270,7 +319,7 @@ class _SubCategoryBudgetDetailScreenState
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Đã chi ${_formatVnd(spentBudget)}',
+                                      'Spent ${_formatVnd(spentBudget)}',
                                       style: Theme.of(context)
                                           .textTheme
                                           .titleLarge
@@ -293,7 +342,7 @@ class _SubCategoryBudgetDetailScreenState
                                         children: [
                                           TextSpan(
                                             text:
-                                                'Còn ${_formatVnd(availableBudget)}',
+                                                'Left ${_formatVnd(availableBudget)}',
                                             style: const TextStyle(
                                               color: Color(0xFF0EA5A8),
                                               fontWeight: FontWeight.w700,
@@ -301,7 +350,7 @@ class _SubCategoryBudgetDetailScreenState
                                           ),
                                           TextSpan(
                                             text:
-                                                ' - Chi $remainingDays ngày tới',
+                                                ' - Spend for next $remainingDays days',
                                           ),
                                         ],
                                       ),
@@ -341,23 +390,23 @@ class _SubCategoryBudgetDetailScreenState
                               ),
                               const SizedBox(width: 8),
                               Expanded(
-                                child: Text(
-                                  'Phân bổ chi tiêu ${_args.title} theo thu nhập',
-                                  style: Theme.of(context).textTheme.bodyMedium
-                                      ?.copyWith(
-                                        color: AppColors.textPrimary,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
+                                  child: Text(
+                                    'Allocate ${_args.title} spending by income',
+                                    style: Theme.of(context).textTheme.bodyMedium
+                                        ?.copyWith(
+                                          color: AppColors.textPrimary,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                               ),
                             ],
                           ),
                         ),
                         const SizedBox(height: 20),
                         Text(
-                          'Giao dịch',
+                          'Transactions',
                           style: Theme.of(context).textTheme.titleLarge
                               ?.copyWith(
                                 fontSize: 42,
@@ -447,37 +496,7 @@ class _SubCategoryBudgetDetailScreenState
                             borderRadius: BorderRadius.circular(18),
                             border: Border.all(color: AppColors.border),
                           ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 88,
-                                height: 88,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF2F4F7),
-                                  borderRadius: BorderRadius.circular(18),
-                                ),
-                                child: const Icon(
-                                  Icons.inventory_2_outlined,
-                                  size: 50,
-                                  color: Color(0xFFB6BDC8),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'Không có dữ liệu',
-                                style: Theme.of(context).textTheme.titleLarge
-                                    ?.copyWith(fontWeight: FontWeight.w700),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Bạn không có giao dịch nào tại thời gian này',
-                                style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(color: AppColors.textSecondary),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
+                          child: _buildTransactionContent(),
                         ),
                       ],
                     ),
@@ -489,6 +508,92 @@ class _SubCategoryBudgetDetailScreenState
         ),
       ),
     );
+  }
+
+  Widget _buildTransactionContent() {
+    if (_isLoadingTransactions) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final dynamic rawTxs = _filteredTransactions;
+    if (rawTxs == null || rawTxs is! List) {
+      return const Center(child: Text('Data error'));
+    }
+
+    final List txs = rawTxs;
+    if (txs.length == 0) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 88,
+            height: 88,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF2F4F7),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: const Icon(
+              Icons.inventory_2_outlined,
+              size: 50,
+              color: Color(0xFFB6BDC8),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No data',
+            style: Theme.of(context)
+                .textTheme
+                .titleLarge
+                ?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'You have no transactions at this time',
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(color: AppColors.textSecondary),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      );
+    }
+
+    final List<Widget> children = [];
+    for (int i = 0; i < txs.length; i++) {
+      final dynamic tx = txs[i];
+      if (tx == null || tx is! Map) continue;
+
+      final amount = _parseDouble(tx['amount']);
+      final dateStr = tx['transactionDate']?.toString() ?? '';
+      final note = tx['note']?.toString() ?? 'No note';
+
+      children.add(
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: CircleAvatar(
+            backgroundColor: const Color(0xFFE8F1FF), // Fixed color
+            child: const Icon(Icons.receipt_long,
+                color: AppColors.primaryBlue, size: 20),
+          ),
+          title: Text(
+            note,
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          subtitle:
+              Text(dateStr.length > 10 ? dateStr.substring(0, 10) : dateStr),
+          trailing: Text(
+            '-${_formatVnd(amount)}',
+            style: const TextStyle(
+              color: AppColors.primaryRed,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Column(children: children);
   }
 }
 
@@ -595,12 +700,12 @@ class _PeriodSwitch extends StatelessWidget {
       child: Row(
         children: [
           _PeriodItem(
-            label: 'Tuần',
+            label: 'Week',
             active: !isMonth,
             onTap: () => onSwitch(false),
           ),
           _PeriodItem(
-            label: 'Tháng',
+            label: 'Month',
             active: isMonth,
             onTap: () => onSwitch(true),
           ),
@@ -657,7 +762,7 @@ class _AxisLabel extends StatelessWidget {
       text,
       style: Theme.of(
         context,
-      ).textTheme.bodySmall?.copyWith(color: color, fontSize: 22),
+      ).textTheme.bodySmall?.copyWith(color: color, fontSize: 10),
     );
   }
 }
@@ -746,14 +851,21 @@ String _formatVnd(num amount) {
   final absolute = rounded.abs().toString();
   final grouped = absolute.replaceAllMapped(
     RegExp(r'\B(?=(\d{3})+(?!\d))'),
-    (_) => '.',
+    (_) => ',',
   );
   final sign = rounded < 0 ? '-' : '';
-  return '$sign$groupedđ';
+  return '$sign$grouped VND';
 }
 
 int _daysUntilMonthEnd(DateTime date) {
   final today = DateTime(date.year, date.month, date.day);
   final monthEnd = DateTime(date.year, date.month + 1, 0);
   return max<int>(0, monthEnd.difference(today).inDays);
+}
+
+double _parseDouble(Object? value) {
+  if (value is num) return value.toDouble();
+  final s = value?.toString() ?? '';
+  if (s.length == 0) return 0;
+  return double.tryParse(s) ?? 0;
 }

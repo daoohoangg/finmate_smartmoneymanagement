@@ -68,6 +68,23 @@ class BudgetService {
     return Budget.fromJson(data as Map<String, dynamic>);
   }
 
+  Future<Budget> updateBudgetStatus({
+    required int budgetId,
+    required BudgetStatus status,
+    required num amountLimit, // Required for the backend payload currently
+    required BudgetPeriod period,
+  }) async {
+    final data = await _client.put(
+      '/api/budgets/$budgetId',
+      body: {
+        'amountLimit': amountLimit, 
+        'period': period.apiValue,
+        'status': status.apiValue,
+      },
+    );
+    return Budget.fromJson(data as Map<String, dynamic>);
+  }
+
   Future<Map<String, dynamic>> createBudget({
     required String name,
     required int categoryId,

@@ -21,4 +21,5 @@ public class BudgetResponse {
     private BigDecimal available;
     private BudgetPeriod period;
     private Integer percentageUsed;
+    private com.finmate.enums.BudgetStatus status;
 }

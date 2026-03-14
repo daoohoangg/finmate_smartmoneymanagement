@@ -284,7 +284,7 @@ class _ManageBudgetScreenState extends State<ManageBudgetScreen> {
       (_) => ',',
     );
     final prefix = rounded < 0 ? '-' : '';
-    return '$prefix$digitsđ';
+    return '$prefix$digits VND';
   }
 
   // ignore: unused_element

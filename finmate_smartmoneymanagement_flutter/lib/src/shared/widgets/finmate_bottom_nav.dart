@@ -6,7 +6,7 @@ const String _overviewRoute = '/dashboard/monthly';
 const String _calendarRoute = '/calendar/weekly';
 const String _transactionsRoute = '/transactions/add';
 const String _aiChatbotRoute = '/ai-coach/chat';
-const String _utilitiesRoute = '/settings';
+const String _utilitiesRoute = '/utilities';
 
 enum FinMateNavItem { overview, calendar, transactions, aiChatbot, utilities }
 
@@ -50,7 +50,7 @@ class FinMateBottomNav extends StatelessWidget {
             ),
             Expanded(
               child: _NavItem(
-                label: 'Lịch',
+                label: 'Calendar',
                 icon: Icons.calendar_month_outlined,
                 active: active == FinMateNavItem.calendar,
                 onTap: () => _open(context, _calendarRoute),
@@ -58,7 +58,7 @@ class FinMateBottomNav extends StatelessWidget {
             ),
             Expanded(
               child: _NavItem(
-                label: 'Ghi chép\ngiao dịch',
+                label: 'Add',
                 icon: Icons.edit_note_rounded,
                 active: active == FinMateNavItem.transactions,
                 onTap: () => _openTransactions(context),
@@ -74,7 +74,7 @@ class FinMateBottomNav extends StatelessWidget {
             ),
             Expanded(
               child: _NavItem(
-                label: 'Tiện ích',
+                label: 'Utilities',
                 icon: Icons.widgets_outlined,
                 active: active == FinMateNavItem.utilities,
                 onTap: () => _open(context, _utilitiesRoute),

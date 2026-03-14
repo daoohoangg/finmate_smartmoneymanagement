@@ -140,7 +140,15 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               ? _selectedCategoryId
               : null;
           _parentCategories = parentCategories;
-          _categories = childCategories;
+          _categories = childCategories
+              .where(
+                (c) =>
+                    c.name.toLowerCase() != 'house' &&
+                    c.name.toLowerCase() != 'housing' &&
+                    c.name.toLowerCase() != 'nhà' &&
+                    c.name.toLowerCase() != 'nhà cửa',
+              )
+              .toList();
           _selectedCategoryId = selectedCategoryId;
           parentCategoriesForAllocation = parentCategories;
         } else {
@@ -239,7 +247,15 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               ? _selectedCategoryId
               : null;
           _parentCategories = parentCategories;
-          _categories = childCategories;
+          _categories = childCategories
+              .where(
+                (c) =>
+                    c.name.toLowerCase() != 'house' &&
+                    c.name.toLowerCase() != 'housing' &&
+                    c.name.toLowerCase() != 'nhà' &&
+                    c.name.toLowerCase() != 'nhà cửa',
+              )
+              .toList();
           _selectedCategoryId = selectedCategoryId;
           parentCategoriesForAllocation = parentCategories;
         } else {
@@ -505,7 +521,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       if (allocatedRaw == null) return null;
       final allocated = _toDouble(allocatedRaw);
 
-      var parentName = 'Danh mục cha';
+      var parentName = 'Parent Category';
       final rawParentCategories = _parentCategories;
       final parentCategories =
           (rawParentCategories as List<dynamic>?)
@@ -532,9 +548,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     if (parentAllocation == null) return null;
     if (amount <= parentAllocation.allocated) return null;
     final exceedAmount = amount - parentAllocation.allocated;
-    return 'Cảnh báo: Số tiền chi vượt mức đã phân cho '
+    return 'Warning: Spending exceeded amount allocated for '
         '"${parentAllocation.parentName}" (${_formatVnd(parentAllocation.allocated)}), '
-        'vượt ${_formatVnd(exceedAmount)}.';
+        'exceeds by ${_formatVnd(exceedAmount)}.';
   }
 
   Future<void> _openCategoryPickerModal({
@@ -654,7 +670,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                                   searchQuery = value;
                                 }),
                                 decoration: const InputDecoration(
-                                  hintText: 'Tìm kiếm',
+                                  hintText: 'Search',
                                   border: InputBorder.none,
                                   contentPadding: EdgeInsets.zero,
                                   prefixIcon: Icon(
@@ -675,7 +691,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                               Icons.add_circle_outline,
                               size: 18,
                             ),
-                            label: const Text('Tạo mới'),
+                            label: const Text('Create'),
                             style: OutlinedButton.styleFrom(
                               minimumSize: const Size(108, 44),
                               side: const BorderSide(color: AppColors.border),
@@ -690,7 +706,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                       child: visibleParentIds.isEmpty
                           ? Center(
                               child: Text(
-                                'Không tìm thấy danh mục',
+                                'Category not found',
                                 style: Theme.of(context).textTheme.bodySmall
                                     ?.copyWith(color: AppColors.textSecondary),
                               ),
@@ -704,7 +720,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                                 final parentId = visibleParentIds[index];
                                 final parent = parentById[parentId];
                                 final parentName =
-                                    parent?.name ?? 'Category cha';
+                                    parent?.name ?? 'Parent Category';
                                 final parentColor = CategoryUi.colorFromString(
                                   parent?.color,
                                   fallback: _parentFallbackColor(parent?.group),
@@ -891,10 +907,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     final rounded = amount.round();
     final absolute = rounded.abs().toString().replaceAllMapped(
       RegExp(r'\B(?=(\d{3})+(?!\d))'),
-      (_) => '.',
+      (_) => ',',
     );
     final prefix = rounded < 0 ? '-' : '';
-    return '$prefix$absoluteđ';
+    return '$prefix$absolute VND';
   }
 
   Future<void> _handleSave() async {

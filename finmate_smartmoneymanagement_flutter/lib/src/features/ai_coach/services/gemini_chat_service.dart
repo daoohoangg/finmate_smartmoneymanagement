@@ -5,15 +5,15 @@ import 'package:http/http.dart' as http;
 class GeminiChatService {
   GeminiChatService({http.Client? client}) : _client = client ?? http.Client();
 
-  static const String _model = 'gemini-2.0-flash';
+  static const String _model = 'gemini-3-flash-preview';
   static const String _apiKey = String.fromEnvironment(
     'GEMINI_API_KEY',
-    defaultValue: '',
+    defaultValue: 'AIzaSyCtBPo2FqBS4zXzaATBTbi6otIUoEU2CPs',
   );
   static const String _systemPrompt =
-      'You are FinMate AI, a concise personal finance coach. '
-      'Give practical steps, short bullet points when needed, and mention risks clearly. '
-      'Keep response under 140 words unless user asks for detail.';
+      'You are FinMate AI, a personal finance coach. '
+      'Give practical steps, bullet points when needed, and mention risks clearly. '
+      'Provide detailed and helpful explanations. Respond in English.';
 
   final http.Client _client;
 
@@ -56,7 +56,7 @@ class GeminiChatService {
         'generationConfig': {
           'temperature': 0.6,
           'topP': 0.9,
-          'maxOutputTokens': 240,
+          'maxOutputTokens': 900,
         },
       }),
     );
@@ -115,7 +115,23 @@ class GeminiChatService {
     if (texts.isEmpty) {
       throw GeminiChatException('Gemini returned no readable text');
     }
-    return texts.join('\n').trim();
+    
+    final rawText = texts.join('\n').trim();
+    return _formatResponseText(rawText);
+  }
+
+  String _formatResponseText(String text) {
+    var formatted = text;
+    // Remove markdown headers
+    formatted = formatted.replaceAll(RegExp(r'^#+\s*', multiLine: true), '');
+    // Remove markdown bold
+    formatted = formatted.replaceAll(RegExp(r'\*\*(.*?)\*\*'), r'$1');
+    // Ensure consistent bullet points
+    formatted = formatted.replaceAll(RegExp(r'^\*\s+', multiLine: true), '• ');
+    formatted = formatted.replaceAll(RegExp(r'^-\s+', multiLine: true), '• ');
+    // Condense multiple newlines
+    formatted = formatted.replaceAll(RegExp(r'\n{3,}'), '\n\n');
+    return formatted.trim();
   }
 
   String? _extractBlockReason(Map<String, dynamic> data) {

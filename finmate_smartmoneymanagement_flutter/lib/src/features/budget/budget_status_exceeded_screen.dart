@@ -179,14 +179,14 @@ class _ExceededCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            '3.300.000 VND',
+            '3,300,000 VND',
             style: Theme.of(
               context,
             ).textTheme.titleLarge?.copyWith(color: AppColors.primaryRed),
           ),
           const SizedBox(height: 4),
           Text(
-            'Limit: 3.000.000 VND',
+            'Limit: 3,000,000 VND',
             style: Theme.of(
               context,
             ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
@@ -207,7 +207,7 @@ class _ExceededCard extends StatelessWidget {
           Row(
             children: [
               Text(
-                'Exceeded by 300.000 VND',
+                'Exceeded by 300,000 VND',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: AppColors.primaryRed,
                   fontWeight: FontWeight.w600,
@@ -218,9 +218,9 @@ class _ExceededCard extends StatelessWidget {
           const SizedBox(height: 10),
           Row(
             children: [
-              _MiniStat(label: 'Monthly Limit', value: '3.000.000'),
+              _MiniStat(label: 'Monthly Limit', value: '3,000,000'),
               const SizedBox(width: 12),
-              _MiniStat(label: 'Total Spent', value: '3.300.000'),
+              _MiniStat(label: 'Total Spent', value: '3,300,000'),
             ],
           ),
         ],

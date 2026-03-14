@@ -44,4 +44,8 @@ public class Budget {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
     private BudgetPeriod period;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private com.finmate.enums.BudgetStatus status = com.finmate.enums.BudgetStatus.PROCESSING;
 }

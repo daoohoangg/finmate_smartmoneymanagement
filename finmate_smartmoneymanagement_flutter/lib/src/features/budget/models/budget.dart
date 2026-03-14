@@ -31,6 +31,33 @@ extension BudgetPeriodX on BudgetPeriod {
   }
 }
 
+enum BudgetStatus { processing, completed }
+
+extension BudgetStatusX on BudgetStatus {
+  String get apiValue {
+    switch (this) {
+      case BudgetStatus.processing:
+        return 'PROCESSING';
+      case BudgetStatus.completed:
+        return 'COMPLETED';
+    }
+  }
+
+  String get label {
+    switch (this) {
+      case BudgetStatus.processing:
+        return 'Processing';
+      case BudgetStatus.completed:
+        return 'Completed';
+    }
+  }
+
+  static BudgetStatus fromApi(String? value) {
+    if (value?.toUpperCase() == 'COMPLETED') return BudgetStatus.completed;
+    return BudgetStatus.processing;
+  }
+}
+
 class Budget {
   Budget({
     required this.id,
@@ -45,6 +72,7 @@ class Budget {
     required this.available,
     required this.period,
     required this.percentageUsed,
+    this.status = BudgetStatus.processing,
   });
 
   final int id;
@@ -59,6 +87,7 @@ class Budget {
   final double available;
   final BudgetPeriod period;
   final int percentageUsed;
+  final BudgetStatus status;
 
   factory Budget.fromJson(Map<String, dynamic> json) {
     return Budget(
@@ -78,6 +107,7 @@ class Budget {
       available: _parseDouble(json['available']),
       period: BudgetPeriodX.fromApi(json['period']?.toString()),
       percentageUsed: _parseInt(json['percentageUsed']),
+      status: BudgetStatusX.fromApi(json['status']?.toString()),
     );
   }
 }

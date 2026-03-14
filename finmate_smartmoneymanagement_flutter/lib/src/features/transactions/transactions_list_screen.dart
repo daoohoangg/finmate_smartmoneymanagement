@@ -83,7 +83,7 @@ class _TransactionsListScreenState extends State<TransactionsListScreen>
       (_) => ',',
     );
     final sign = isIncome ? '+' : '-';
-    return '$sign$separatedđ';
+    return '$sign$separated VND';
   }
 
   String _formatGroupLabel(DateTime? date) {

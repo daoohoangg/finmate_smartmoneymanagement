@@ -37,6 +37,7 @@ import 'src/features/profile/change_password_screen.dart';
 import 'src/features/recurring/recurring_custom_screen.dart';
 import 'src/features/recurring/recurring_setup_screen.dart';
 import 'src/features/settings/settings_screen.dart';
+import 'src/features/utilities/utilities_screen.dart';
 import 'src/features/transactions/add_transaction_screen.dart';
 import 'src/features/transactions/delete_transaction_screen.dart';
 import 'src/features/transactions/edit_transaction_screen.dart';
@@ -197,6 +198,7 @@ class FinMateApp extends StatelessWidget {
         DeleteCategoryScreen.routeName: (_) => _buildGradientBackground(const DeleteCategoryScreen()),
         ChangePasswordScreen.routeName: (_) => _buildGradientBackground(const ChangePasswordScreen()),
         SettingsScreen.routeName: (_) => _buildGradientBackground(const SettingsScreen()),
+        UtilitiesScreen.routeName: (_) => _buildGradientBackground(const UtilitiesScreen()),
       },
       onUnknownRoute: (settings) => MaterialPageRoute(
         settings: settings,
