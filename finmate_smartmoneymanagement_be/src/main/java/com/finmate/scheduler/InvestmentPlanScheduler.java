@@ -70,7 +70,7 @@ public class InvestmentPlanScheduler {
         return switch (frequency) {
             case DAILY -> current.plusDays(1);
             case WEEKLY -> current.plusWeeks(1);
-            case MONTHLY -> current.plusMonths(1);
+            case MONTHLY -> current.plusMonths( 1);
             case QUARTERLY -> current.plusMonths(3);
         };
     }
