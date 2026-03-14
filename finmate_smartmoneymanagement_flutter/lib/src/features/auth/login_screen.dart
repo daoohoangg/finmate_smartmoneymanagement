@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/config/app_config.dart';
 import '../../core/storage/session_storage.dart';
 import '../dashboard/monthly_dashboard_screen.dart';
 import 'services/auth_service.dart';
@@ -67,6 +68,16 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _handleGoogleLogin() async {
     setState(() => _isLoading = true);
     try {
+      print('--- GOOGLE SIGN IN DEBUG ---');
+      print('GOOGLE_WEB_CLIENT_ID: "${AppConfig.googleWebClientId}"');
+      
+      if (AppConfig.googleWebClientId.isEmpty) {
+        if (mounted) {
+          AppToast.error(context, 'Missing GOOGLE_WEB_CLIENT_ID! Please select the "Android" / "Windows" Run Config or add --dart-define-from-file=..\\.env');
+        }
+        return;
+      }
+      
       // Use GoogleSignInService to get token result
       final result = await GoogleSignInService.instance.signIn();
       if (result == null || !result.isValid) {
@@ -88,7 +99,11 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, MonthlyDashboardScreen.routeName);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('================ GOOGLE SIGN IN ERROR ================');
+      print(e);
+      print(stackTrace);
+      print('======================================================');
       if (mounted) AppToast.error(context, AppToast.friendlyMessage(e));
     } finally {
       if (mounted) {

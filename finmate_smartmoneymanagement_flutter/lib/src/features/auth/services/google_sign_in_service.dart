@@ -20,6 +20,7 @@ class GoogleSignInService {
 
   late final GoogleSignIn _googleSignIn = GoogleSignIn(
     clientId: kIsWeb ? AppConfig.googleWebClientId : null,
+    serverClientId: kIsWeb ? null : AppConfig.googleWebClientId,
     scopes: ['email', 'profile'],
   );
 
