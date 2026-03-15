@@ -14,6 +14,7 @@ import '../categories/utils/category_ui.dart';
 import '../dashboard/monthly_dashboard_screen.dart';
 import '../transactions/services/transaction_service.dart';
 import 'services/allocation_plan_service.dart';
+import 'manual_allocation_screen.dart';
 
 class ManageBudgetScreen extends StatefulWidget {
   const ManageBudgetScreen({super.key});
@@ -704,10 +705,16 @@ class _ManageBudgetScreenState extends State<ManageBudgetScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _AllocationOverviewCard(
-                          spendableAmount: _spendableAmount,
-                          plan: _allocationPlan,
-                          formatAmount: _formatVnd,
+                        GestureDetector(
+                          onTap: () => Navigator.pushNamed(
+                            context,
+                            ManualAllocationScreen.routeName,
+                          ),
+                          child: _AllocationOverviewCard(
+                            spendableAmount: _spendableAmount,
+                            plan: _allocationPlan,
+                            formatAmount: _formatVnd,
+                          ),
                         ),
                         const SizedBox(height: 14),
                         _MainCategoryOverviewCard(
