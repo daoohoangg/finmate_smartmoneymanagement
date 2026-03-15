@@ -6,12 +6,18 @@
 
 #include "generated_plugin_registrant.h"
 
-#include <desktop_webview_auth/desktop_webview_auth_plugin.h>
+#include <app_links/app_links_plugin_c_api.h>
 #include <file_selector_windows/file_selector_windows.h>
+#include <url_launcher_windows/url_launcher_windows.h>
+#include <window_to_front/window_to_front_plugin.h>
 
 void RegisterPlugins(flutter::PluginRegistry* registry) {
-  DesktopWebviewAuthPluginRegisterWithRegistrar(
-      registry->GetRegistrarForPlugin("DesktopWebviewAuthPlugin"));
+  AppLinksPluginCApiRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("AppLinksPluginCApi"));
   FileSelectorWindowsRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("FileSelectorWindows"));
+  UrlLauncherWindowsRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("UrlLauncherWindows"));
+  WindowToFrontPluginRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("WindowToFrontPlugin"));
 }
