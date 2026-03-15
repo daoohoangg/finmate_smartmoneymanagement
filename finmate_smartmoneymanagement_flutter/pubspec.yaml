@@ -39,7 +39,10 @@ dependencies:
   image_picker: ^1.1.2
   file_picker: ^9.2.3
   google_sign_in: ^6.2.1
-  desktop_webview_auth: ^0.0.16
+  google_sign_in_all_platforms: ^1.2.1
+  url_launcher: ^6.3.2
+  window_to_front: ^0.0.3
+  app_links: ^7.0.0
 
 dev_dependencies:
   flutter_test:
