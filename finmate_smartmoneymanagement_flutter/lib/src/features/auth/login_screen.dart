@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/config/app_config.dart';
@@ -39,7 +40,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
     if (email.isEmpty || password.isEmpty) {
-      AppToast.error(context, 'Email and password are required');
+      AppToast.error(context, 'email_password_required'.tr());
       return;
     }
     setState(() => _isLoading = true);
@@ -81,7 +82,7 @@ class _LoginScreenState extends State<LoginScreen> {
       // Use GoogleSignInService to get token result
       final result = await GoogleSignInService.instance.signIn();
       if (result == null || !result.isValid) {
-        if (mounted) AppToast.info(context, 'Google Sign-In was cancelled');
+        if (mounted) AppToast.info(context, 'sign_in_cancelled'.tr());
         return;
       }
 
@@ -171,14 +172,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 24),
                     Text(
-                      'Welcome Back',
+                      'welcome_back'.tr(),
                       style: Theme.of(
                         context,
                       ).textTheme.headlineSmall?.copyWith(fontSize: 24),
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Log in to track your finances.',
+                      'log_in_to_track'.tr(),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: AppColors.textSecondary,
                       ),
@@ -186,15 +187,15 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 24),
                     AppTextField(
-                      label: 'Email',
+                      label: 'email'.tr(),
                       hint: 'name@example.com',
                       keyboardType: TextInputType.emailAddress,
                       controller: _emailController,
                     ),
                     const SizedBox(height: 16),
                     AppTextField(
-                      label: 'Password',
-                      hint: 'Password',
+                      label: 'password'.tr(),
+                      hint: 'password'.tr(),
                       obscureText: _obscurePassword,
                       controller: _passwordController,
                       suffix: IconButton(
@@ -220,12 +221,12 @@ class _LoginScreenState extends State<LoginScreen> {
                             ForgotPasswordScreen.routeName,
                           );
                         },
-                        child: const Text('Forgot Password?'),
+                        child: Text('forgot_password'.tr()),
                       ),
                     ),
                     const SizedBox(height: 4),
                     PrimaryButton(
-                      label: 'Login',
+                      label: 'login'.tr(),
                       color: AppColors.primaryBlue,
                       isLoading: _isLoading,
                       onPressed: _isLoading ? null : _handleLogin,
@@ -237,7 +238,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                           child: Text(
-                            'Or continue with',
+                            'or_continue_with'.tr(),
                             style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(color: AppColors.textSecondary),
                           ),
@@ -276,7 +277,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                         label: Text(
-                          'Continue with Google',
+                          'continue_with_google'.tr(),
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(fontWeight: FontWeight.w600),
                         ),

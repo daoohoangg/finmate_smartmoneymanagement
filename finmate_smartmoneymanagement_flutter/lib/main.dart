@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 import 'src/core/theme/app_theme.dart';
 import 'src/core/storage/session_storage.dart';
@@ -80,8 +81,18 @@ final AppRouteObserver appRouteObserver = AppRouteObserver();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await EasyLocalization.ensureInitialized();
   await SessionStorage.instance.init();
-  runApp(FinMateApp());
+  
+  runApp(
+    EasyLocalization(
+      supportedLocales: const [Locale('en'), Locale('vi')],
+      path: 'assets/translations', // path to translation files
+      fallbackLocale: const Locale('en'),
+      useFallbackTranslations: true,
+      child: const FinMateApp(),
+    ),
+  );
 }
 
 class FinMateApp extends StatelessWidget {
@@ -119,6 +130,9 @@ class FinMateApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'FinMate',
       theme: buildAppTheme(),
+      localizationsDelegates: context.localizationDelegates,
+      supportedLocales: context.supportedLocales,
+      locale: context.locale,
       initialRoute: '/',
       builder: (context, child) {
         return LayoutBuilder(

@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/constants/app_colors.dart';
@@ -316,7 +317,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings'),
+        title: Text('settings'.tr()),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new),
           onPressed: () => Navigator.pop(context),
@@ -402,7 +403,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   const SizedBox(height: 18),
-                  const SectionLabel(text: 'APPEARANCE'),
+                  SectionLabel(text: 'appearance'.tr()),
                   const SizedBox(height: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -430,7 +431,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         const SizedBox(width: 12),
                         Text(
-                          'Dark Mode',
+                          'dark_mode'.tr(),
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(fontWeight: FontWeight.w600),
                         ),
@@ -449,7 +450,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   const SizedBox(height: 18),
-                  const SectionLabel(text: 'CURRENCY'),
+                  SectionLabel(text: 'currency'.tr()),
                   const SizedBox(height: 8),
                   Container(
                     padding: const EdgeInsets.all(14),
@@ -481,7 +482,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Default Currency',
+                                    'default_currency'.tr(),
                                     style: Theme.of(context)
                                         .textTheme
                                         .bodyMedium
@@ -489,7 +490,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'Switch between VND and USD',
+                                    'currency_switch_desc'.tr(),
                                     style: Theme.of(context).textTheme.bodySmall
                                         ?.copyWith(
                                           color: AppColors.textSecondary,
@@ -556,7 +557,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   const SizedBox(height: 18),
-                  const SectionLabel(text: 'LANGUAGE'),
+                  SectionLabel(text: 'language'.tr()),
                   const SizedBox(height: 8),
                   Container(
                     padding: const EdgeInsets.all(14),
@@ -580,18 +581,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        const Text('Language'),
+                        Text('language'.tr()),
                         const Spacer(),
                         Wrap(
                           spacing: 8,
                           children: [
                             ChoiceChip(
-                              label: const Text('Vietnamese'),
+                              label: Text('vietnamese'.tr()),
                               selected: _language == 'VI',
-                              onSelected: (_) {
+                              onSelected: (_) async {
                                 setState(() {
                                   _language = 'VI';
                                 });
+                                await context.setLocale(const Locale('vi'));
                                 _updateSettings();
                               },
                               showCheckmark: false,
@@ -605,12 +607,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ),
                             ),
                             ChoiceChip(
-                              label: const Text('English'),
+                              label: Text('english'.tr()),
                               selected: _language == 'EN',
-                              onSelected: (_) {
+                              onSelected: (_) async {
                                 setState(() {
                                   _language = 'EN';
                                 });
+                                await context.setLocale(const Locale('en'));
                                 _updateSettings();
                               },
                               showCheckmark: false,
@@ -629,7 +632,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   const SizedBox(height: 18),
-                  const SectionLabel(text: 'ROUNDING'),
+                  SectionLabel(text: 'rounding'.tr()),
                   const SizedBox(height: 8),
                   Container(
                     padding: const EdgeInsets.all(14),
@@ -656,7 +659,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ),
                             ),
                             const SizedBox(width: 12),
-                            const Text('Decimal places'),
+                            Text('decimal_places'.tr()),
                             const Spacer(),
                             DropdownButton<int>(
                               value: _roundingScale,
@@ -677,7 +680,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const SizedBox(height: 12),
                         Row(
                           children: [
-                            const Text('Rounding mode'),
+                            Text('rounding_mode'.tr()),
                             const Spacer(),
                             DropdownButton<String>(
                               value: _roundingMode,
@@ -708,7 +711,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   const SizedBox(height: 18),
-                  const SectionLabel(text: 'SMART ASSIST'),
+                  SectionLabel(text: 'smart_assist'.tr()),
                   const SizedBox(height: 8),
                   Container(
                     decoration: BoxDecoration(
@@ -720,7 +723,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       children: [
                         _SettingsItem(
                           icon: Icons.auto_awesome,
-                          label: 'AI Financial Coach',
+                          label: 'ai_financial_coach'.tr(),
                           iconColor: AppColors.primaryBlue,
                           onTap: _openAiCoach,
                         ),
@@ -728,7 +731,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   const SizedBox(height: 18),
-                  const SectionLabel(text: 'TRANSACTIONS'),
+                  SectionLabel(text: 'transactions_section'.tr()),
                   const SizedBox(height: 8),
                   Container(
                     decoration: BoxDecoration(
@@ -740,28 +743,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       children: [
                         _SettingsItem(
                           icon: Icons.add_circle_outline,
-                          label: 'Add Transaction',
+                          label: 'add_transaction'.tr(),
                           iconColor: AppColors.primaryBlue,
                           onTap: _openAddTransaction,
                         ),
                         const Divider(height: 1, color: AppColors.border),
                         _SettingsItem(
                           icon: Icons.edit_outlined,
-                          label: 'Edit Transaction',
+                          label: 'edit_transaction'.tr(),
                           iconColor: AppColors.primaryBlue,
                           onTap: _openEditTransaction,
                         ),
                         const Divider(height: 1, color: AppColors.border),
                         _SettingsItem(
                           icon: Icons.list_alt_outlined,
-                          label: 'Transactions List',
+                          label: 'transactions_list'.tr(),
                           iconColor: AppColors.primaryBlue,
                           onTap: _openTransactionsList,
                         ),
                         const Divider(height: 1, color: AppColors.border),
                         _SettingsItem(
                           icon: Icons.repeat,
-                          label: 'Recurring Setup',
+                          label: 'recurring_setup'.tr(),
                           iconColor: AppColors.primaryBlue,
                           onTap: _openRecurringSetup,
                         ),
@@ -769,7 +772,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   const SizedBox(height: 18),
-                  const SectionLabel(text: 'FUNDS SCREENS'),
+                  SectionLabel(text: 'funds_screens'.tr()),
                   const SizedBox(height: 8),
                   Container(
                     decoration: BoxDecoration(
@@ -781,21 +784,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       children: [
                         _SettingsItem(
                           icon: Icons.add_chart,
-                          label: 'Create Funds',
+                          label: 'create_funds'.tr(),
                           iconColor: AppColors.primaryBlue,
                           onTap: _openBudgetCreate,
                         ),
                         const Divider(height: 1, color: AppColors.border),
                         _SettingsItem(
                           icon: Icons.warning_amber_rounded,
-                          label: 'Create Funds (Warning)',
+                          label: 'create_funds_warning'.tr(),
                           iconColor: AppColors.primaryBlue,
                           onTap: _openBudgetCreateWarning,
                         ),
                         const Divider(height: 1, color: AppColors.border),
                         _SettingsItem(
                           icon: Icons.check_circle_outline,
-                          label: 'Create Funds (Success)',
+                          label: 'create_funds_success'.tr(),
                           iconColor: AppColors.primaryBlue,
                           onTap: _openBudgetCreateSuccess,
                         ),
@@ -992,9 +995,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                      child: const Text(
-                        'Log Out',
-                        style: TextStyle(
+                      child: Text(
+                        'logout'.tr(),
+                        style: const TextStyle(
                           color: AppColors.primaryRed,
                           fontWeight: FontWeight.w600,
                         ),
