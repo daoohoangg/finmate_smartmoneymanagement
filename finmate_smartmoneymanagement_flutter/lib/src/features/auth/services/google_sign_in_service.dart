@@ -116,10 +116,40 @@ class GoogleSignInService {
     // 4. Extract the code and show success page
     final code = request.uri.queryParameters['code'];
     
+    final String successHtml = '''
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Đăng nhập thành công - FinMate</title>
+  <style>
+    body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%); display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; color: #333; }
+    .container { background-color: white; padding: 40px 50px; border-radius: 24px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); text-align: center; max-width: 400px; animation: fadeIn 0.6s cubic-bezier(0.22, 1, 0.36, 1); }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    .icon { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; width: 80px; height: 80px; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin: 0 auto 20px; font-size: 36px; box-shadow: 0 10px 20px rgba(0,198,255,0.3); }
+    h1 { font-size: 26px; margin: 0 0 10px; color: #1a1a1a; font-weight: 700; }
+    p { font-size: 15px; color: #666; line-height: 1.6; margin: 0 0 30px; }
+    .btn { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 28px; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 15px rgba(118,75,162,0.3); }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(118,75,162,0.4); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">✓</div>
+    <h1>Đăng nhập hoàn tất!</h1>
+    <p>Tài khoản Google của bạn đã được FinMate xác thực an toàn. Bạn có thể đóng trình duyệt này và quay trở lại.</p>
+    <button class="btn" onclick="window.close()">Về lại ứng dụng</button>
+  </div>
+  <script>setTimeout(function() { window.close(); }, 4000);</script>
+</body>
+</html>
+''';
+
     request.response
       ..statusCode = 200
       ..headers.set('Content-Type', 'text/html; charset=utf-8')
-      ..write('<html><body><h1>Authentication Successful</h1><p>You can close this tab and return to the app.</p><script>window.close();</script></body></html>');
+      ..write(successHtml);
     await request.response.close();
     await server.close();
 
