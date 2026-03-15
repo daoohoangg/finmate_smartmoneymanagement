@@ -49,6 +49,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.3.5+2"
+  crypto:
+    dependency: transitive
+    description:
+      name: crypto
+      sha256: c8ea0233063ba03258fbcf2ca4d6dadfefe14f02fab57702265467a19f27fadf
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.0.7"
   cupertino_icons:
     dependency: "direct main"
     description:
@@ -57,6 +65,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.8"
+  desktop_webview_auth:
+    dependency: "direct main"
+    description:
+      name: desktop_webview_auth
+      sha256: cd47d8cc97e2121adda213ea600470fd3e8d0e0967ed260b7d9362fc9df38c5c
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.16"
   fake_async:
     dependency: transitive
     description:

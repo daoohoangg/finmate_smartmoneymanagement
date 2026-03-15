@@ -13,4 +13,19 @@ class AppConfig {
     'GOOGLE_WEB_CLIENT_ID',
     defaultValue: '',
   );
+
+  /// Google OAuth Desktop Client ID.
+  /// Required for Google Sign-In on Windows platform.
+  static const String googleWindowsClientId = String.fromEnvironment(
+    'GOOGLE_WINDOWS_CLIENT_ID',
+    defaultValue: '',
+  );
+
+  /// Google OAuth Desktop Client Secret.
+  /// Required for Google Sign-In on Windows platform.
+  /// This is kept secure within the desktop executable memory.
+  static const String googleWindowsClientSecret = String.fromEnvironment(
+    'GOOGLE_WINDOWS_CLIENT_SECRET',
+    defaultValue: '',
+  );
 }
