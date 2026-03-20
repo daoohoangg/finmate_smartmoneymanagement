@@ -28,7 +28,7 @@ import java.util.UUID;
 @Tag(name = "Transactions", description = "Transaction management - Core of ZBB system, single source of truth for all balance changes")
 public class TransactionController {
 
-    private final TransactionService transactionService;
+    private final TransactionService transactionService; 
 
     @PostMapping
     @Operation(summary = "Create transaction", description = "Creates a new transaction. Automatically updates wallet balance and budget. "
