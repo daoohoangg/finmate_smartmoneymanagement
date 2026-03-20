@@ -773,7 +773,7 @@ class _BudgetSection extends StatelessWidget {
           child: Row(
              children: [
                const Text(
-                 'Ngân sách chi tiêu',
+                 'Spending budget',
                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF333333)),
                ),
                const Spacer(),

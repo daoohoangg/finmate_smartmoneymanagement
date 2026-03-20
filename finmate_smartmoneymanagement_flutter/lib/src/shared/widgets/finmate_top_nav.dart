@@ -60,14 +60,14 @@ class FinMateTopNav extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         _NavItem(
-                          label: 'Lịch',
+                          label: 'Calendar',
                           icon: Icons.calendar_month_outlined,
                           active: currentRoute == '/calendar/weekly',
                           onTap: () => _open('/calendar/weekly'),
                         ),
                         const SizedBox(width: 8),
                         _NavItem(
-                          label: 'Ghi chép giao dịch',
+                          label: 'Add transaction',
                           icon: Icons.edit_note_rounded,
                           active: currentRoute == '/transactions/add',
                           onTap: _openTransactions,
@@ -81,11 +81,12 @@ class FinMateTopNav extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         _NavItem(
-                          label: 'Tiện ích',
+                          label: 'Utilities',
                           icon: Icons.widgets_outlined,
-                          active: currentRoute == '/settings' ||
+                          active: currentRoute == '/utilities' ||
+                                  currentRoute == '/settings' ||
                                   currentRoute == '/categories/manage',
-                          onTap: () => _open('/settings'),
+                          onTap: () => _open('/utilities'),
                         ),
                       ],
                     );

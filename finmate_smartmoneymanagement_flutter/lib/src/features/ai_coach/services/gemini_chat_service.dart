@@ -8,7 +8,7 @@ class GeminiChatService {
   static const String _model = 'gemini-3-flash-preview';
   static const String _apiKey = String.fromEnvironment(
     'GEMINI_API_KEY',
-    defaultValue: 'AIzaSyCtBPo2FqBS4zXzaATBTbi6otIUoEU2CPs',
+    defaultValue: 'AIzaSyCzl2XuDH2CfUlqK11kbHBL9MELvakZXPU',
   );
   static const String _systemPrompt =
       'You are FinMate AI, a personal finance coach. '

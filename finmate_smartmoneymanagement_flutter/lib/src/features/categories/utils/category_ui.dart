@@ -103,6 +103,6 @@ class CategoryUi {
     if (codepoint <= 0) return _fallbackIcon;
     final mapped = _codepointMap[codepoint];
     if (mapped != null) return mapped;
-    return IconData(codepoint, fontFamily: 'MaterialIcons');
+    return _fallbackIcon;
   }
 }

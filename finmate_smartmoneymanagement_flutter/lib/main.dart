@@ -89,6 +89,7 @@ Future<void> main() async {
       supportedLocales: const [Locale('en'), Locale('vi')],
       path: 'assets/translations', // path to translation files
       fallbackLocale: const Locale('en'),
+      startLocale: const Locale('en'),
       useFallbackTranslations: true,
       child: const FinMateApp(),
     ),

@@ -122,7 +122,7 @@ class GoogleSignInService {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Đăng nhập thành công - FinMate</title>
+  <title>Login successful - FinMate</title>
   <style>
     body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%); display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; color: #333; }
     .container { background-color: white; padding: 40px 50px; border-radius: 24px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); text-align: center; max-width: 400px; animation: fadeIn 0.6s cubic-bezier(0.22, 1, 0.36, 1); }
@@ -137,9 +137,9 @@ class GoogleSignInService {
 <body>
   <div class="container">
     <div class="icon">✓</div>
-    <h1>Đăng nhập hoàn tất!</h1>
-    <p>Tài khoản Google của bạn đã được FinMate xác thực an toàn. Bạn có thể đóng trình duyệt này và quay trở lại.</p>
-    <button class="btn" onclick="window.close()">Về lại ứng dụng</button>
+    <h1>Login complete!</h1>
+    <p>Your Google account has been securely authenticated by FinMate. You can close this browser and return to the app.</p>
+    <button class="btn" onclick="window.close()">Return to app</button>
   </div>
   <script>setTimeout(function() { window.close(); }, 4000);</script>
 </body>

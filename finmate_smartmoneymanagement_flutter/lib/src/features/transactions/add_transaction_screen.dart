@@ -639,7 +639,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              'Chọn category',
+                              'Select category',
                               style: Theme.of(sheetContext).textTheme.bodyMedium
                                   ?.copyWith(fontWeight: FontWeight.w700),
                             ),

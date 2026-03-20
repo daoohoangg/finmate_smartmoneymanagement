@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../shared/widgets/finmate_bottom_nav.dart';
@@ -345,7 +346,10 @@ class _UtilitiesScreenState extends State<UtilitiesScreen> {
               ChoiceChip(
                 label: const Text('EN', style: TextStyle(fontSize: 12)),
                 selected: _language == 'EN',
-                onSelected: (_) => _updateSettings(null, 'EN'),
+                onSelected: (_) {
+                  _updateSettings(null, 'EN');
+                  context.setLocale(const Locale('en'));
+                },
                 showCheckmark: false,
                 selectedColor: AppColors.primaryRed,
                 labelStyle: TextStyle(
@@ -356,7 +360,10 @@ class _UtilitiesScreenState extends State<UtilitiesScreen> {
               ChoiceChip(
                 label: const Text('VI', style: TextStyle(fontSize: 12)),
                 selected: _language == 'VI',
-                onSelected: (_) => _updateSettings(null, 'VI'),
+                onSelected: (_) {
+                  _updateSettings(null, 'VI');
+                  context.setLocale(const Locale('vi'));
+                },
                 showCheckmark: false,
                 selectedColor: AppColors.primaryRed,
                 labelStyle: TextStyle(
